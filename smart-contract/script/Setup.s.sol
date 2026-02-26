@@ -1,0 +1,54 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.13;
+
+import {Script, console} from "forge-std/Script.sol";
+import {VaultManager} from "../src/core/VaultManager.sol";
+
+interface ISimpleERC20 {
+    function approve(address spender, uint256 amount) external returns (bool);
+}
+
+contract SetupArbitrumSepolia is Script {
+    address constant VAULT_ARB =
+        address(0x35e0f76D22ad27C97222d9A043F2b47448eff0B3);
+    address constant VAULT_BASE =
+        address(0x526282Cc7a046204Eb8Ed3B52612Dd563a820242);
+    address constant LINK_TOKEN = 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E;
+
+    uint64 constant ARB_SELECTOR = 3478487238524512106;
+    uint64 constant BASE_SELECTOR = 10344971235874465080;
+    uint256 constant LINK_FUND_AMOUNT = 2 ether;
+
+    uint256 constant ARB_INITIAL_APY = 8e16; // 8%
+    uint256 constant BASE_INITIAL_APY = 3e16; // 3%
+
+    function run() external {
+        require(VAULT_ARB != address(0), "Set VAULT_ARB");
+        require(VAULT_BASE != address(0), "Set VAULT_BASE");
+
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+
+        console.log("=== Setup VaultManager Arbitrum Sepolia ===");
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        VaultManager vault = VaultManager(VAULT_ARB);
+
+        vault.setTrustedVault(BASE_SELECTOR, VAULT_BASE);
+        console.log("setTrustedVault Base ->", VAULT_BASE);
+
+        ISimpleERC20(LINK_TOKEN).approve(VAULT_ARB, LINK_FUND_AMOUNT);
+        vault.fundLink(LINK_FUND_AMOUNT);
+        console.log("fundLink: 2 LINK");
+
+        vault.updateYieldData(ARB_SELECTOR, ARB_INITIAL_APY);
+        vault.updateYieldData(BASE_SELECTOR, BASE_INITIAL_APY);
+        console.log("updateYieldData: ARB 8%, BASE 3%");
+
+        console.log("Setup Arbitrum selesai. Next: jalankan 04_SetupBase");
+
+        vm.stopBroadcast();
+    }
+}
+
+// forge script script/Setup.s.sol:SetupArbitrumSepolia --rpc-url $RPC_URL_ARB --broadcast

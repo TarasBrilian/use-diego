@@ -9,12 +9,9 @@ import {
     ReentrancyGuard
 } from "openzeppelin-contracts/contracts/utils/ReentrancyGuard.sol";
 
-// Chainlink Automation
 import {
     AutomationCompatibleInterface
 } from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
-
-// Chainlink CCIP
 import {
     IRouterClient
 } from "@chainlink/contracts-ccip/interfaces/IRouterClient.sol";
@@ -41,6 +38,33 @@ interface IMockAave {
         );
     function getUserSupplyBalance(address user) external view returns (uint256);
 }
+
+// .                                     #*******       #******##
+// .                                   ##*********#    **********##
+// .                                  #************    ***********##
+// .                                ##*************    ***********####
+// .                               ###*************    ************####
+// .                             %###*************      ************####
+// .                            #####*************      #***********######
+// .                            #####************        ***********######
+// .                           %####************          **********#######
+// .                           #####**********              ********#######
+// .                           ######********    %#*****#    #*****########
+// .                           ######******     ###***# **     #**#########
+// .                            ######***#     #####******#     #*########
+// .                            ##########     %###########     ##########
+// .                             ########       %#########       ########
+// .                              ########        ######        ########
+// .                               %######         ####         #######
+// .                                 #######       ####       #######
+// .                                  ##############*###############
+// .                                    ############*#############
+// .                                     %######################%
+// .                                       ####################
+// .                                         ################
+// .                                           ############
+// .                                            %########%
+// .                                              %####%
 
 contract VaultManager is
     CCIPReceiver,
@@ -76,14 +100,15 @@ contract VaultManager is
     event EmergencyPaused(address triggeredBy);
     event EmergencyUnpaused(address triggeredBy);
     event TrustedVaultSet(uint64 chainSelector, address vault);
-    event LinkFunded(uint256 amount);
+    event LinkFunded(address indexed funder, uint256 amount);
+    event TotalAssetsSynced(uint256 oldValue, uint256 newValue);
 
-    uint256 public constant YIELD_DELTA_THRESHOLD = 2e16; // 2%
-    uint256 public constant BRIDGE_COST_LIMIT = 50e6; // 50 USDC
+    uint256 public constant YIELD_DELTA_THRESHOLD = 2e16;
+    uint256 public constant BRIDGE_COST_LIMIT = 50e6;
     uint256 public constant REBALANCE_COOLDOWN = 24 hours;
     uint256 public constant MAX_BREAKEVEN_DAYS = 14;
-    uint256 public constant MAX_TRANSFER_BPS = 2000; // 20%
-    uint256 public constant MIN_TRANSFER_AMOUNT = 100e6; // 100 USDC
+    uint256 public constant MAX_TRANSFER_BPS = 2000;
+    uint256 public constant MIN_TRANSFER_AMOUNT = 100e6;
 
     IERC20 public immutable usdc;
     IMockAave public immutable aave;
@@ -93,6 +118,7 @@ contract VaultManager is
 
     address public owner;
     address public creOperator;
+    address public automationForwarder;
 
     uint256 public totalShares;
     uint256 public totalAssets;
@@ -106,10 +132,10 @@ contract VaultManager is
         uint256 timestamp;
         bool active;
     }
+
     mapping(uint64 => ChainYieldData) public chainYieldData;
     uint64[] public monitoredChains;
     mapping(uint64 => address) public trustedVaults;
-    address public automationForwarder;
 
     bytes32 public constant ACTION_REBALANCE_IN = keccak256("REBALANCE_IN");
 
@@ -166,6 +192,8 @@ contract VaultManager is
     function deposit(uint256 amount) external nonReentrant whenNotPaused {
         if (amount == 0) revert ZeroAmount();
 
+        _syncTotalAssets();
+
         usdc.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 shares;
@@ -190,7 +218,12 @@ contract VaultManager is
         if (shares > userShares[msg.sender])
             revert InsufficientBalance(shares, userShares[msg.sender]);
 
+        _syncTotalAssets();
+
         uint256 amount = (shares * totalAssets) / totalShares;
+
+        uint256 aaveBalance = aave.getUserSupplyBalance(address(this));
+        if (amount > aaveBalance) amount = aaveBalance;
 
         userShares[msg.sender] -= shares;
         totalShares -= shares;
@@ -243,8 +276,10 @@ contract VaultManager is
         returns (bool upkeepNeeded, bytes memory performData)
     {
         if (paused) return (false, "");
-        if (block.timestamp < lastRebalanceTimestamp + REBALANCE_COOLDOWN)
-            return (false, "");
+        if (
+            lastRebalanceTimestamp != 0 &&
+            block.timestamp < lastRebalanceTimestamp + REBALANCE_COOLDOWN
+        ) return (false, "");
 
         RebalanceOpportunity memory opp = _findBestOpportunity();
         if (!opp.exists) return (false, "");
@@ -260,14 +295,15 @@ contract VaultManager is
     function performUpkeep(
         bytes calldata performData
     ) external override onlyAutomation nonReentrant whenNotPaused {
-        (
-            uint64 targetChain,
-            uint256 transferAmount,
-            uint256 expectedDelta
-        ) = abi.decode(performData, (uint64, uint256, uint256));
+        (uint64 targetChain, uint256 transferAmount, ) = abi.decode(
+            performData,
+            (uint64, uint256, uint256)
+        );
 
-        if (block.timestamp < lastRebalanceTimestamp + REBALANCE_COOLDOWN)
-            revert CooldownActive(lastRebalanceTimestamp + REBALANCE_COOLDOWN);
+        if (
+            lastRebalanceTimestamp != 0 &&
+            block.timestamp < lastRebalanceTimestamp + REBALANCE_COOLDOWN
+        ) revert CooldownActive(lastRebalanceTimestamp + REBALANCE_COOLDOWN);
 
         uint256 currentLocalRate = aave.getSupplyAPY();
         ChainYieldData memory targetData = chainYieldData[targetChain];
@@ -280,14 +316,15 @@ contract VaultManager is
                 YIELD_DELTA_THRESHOLD
             );
 
+        _syncTotalAssets();
         uint256 currentBalance = aave.getUserSupplyBalance(address(this));
         if (transferAmount > currentBalance) transferAmount = currentBalance;
         if (transferAmount < MIN_TRANSFER_AMOUNT) revert TransferAmountTooLow();
 
         lastRebalanceTimestamp = block.timestamp;
+        totalAssets -= transferAmount;
 
         aave.withdrawByAmount(transferAmount);
-        totalAssets -= transferAmount;
 
         bytes32 messageId = _sendCCIP(targetChain, transferAmount);
 
@@ -321,8 +358,9 @@ contract VaultManager is
         });
 
         uint256 fee = ccipRouter.getFee(targetChain, message);
-        if (fee > BRIDGE_COST_LIMIT * 1e12)
-            revert BridgeCostTooHigh(fee, BRIDGE_COST_LIMIT * 1e12);
+        uint256 bridgeCostLimitNormalized = uint256(BRIDGE_COST_LIMIT) * 1e12;
+        if (fee > bridgeCostLimitNormalized)
+            revert BridgeCostTooHigh(fee, bridgeCostLimitNormalized);
 
         linkToken.approve(address(ccipRouter), fee);
         usdc.approve(address(ccipRouter), amount);
@@ -332,18 +370,14 @@ contract VaultManager is
 
     function _ccipReceive(
         Client.Any2EVMMessage memory message
-    ) internal override nonReentrant whenNotPaused {
+    ) internal override whenNotPaused {
         uint64 sourceChain = message.sourceChainSelector;
         address sender = abi.decode(message.sender, (address));
-
         if (trustedVaults[sourceChain] == address(0))
             revert InvalidChain(sourceChain);
         if (trustedVaults[sourceChain] != sender) revert InvalidSender(sender);
 
-        (bytes32 action, uint256 amount) = abi.decode(
-            message.data,
-            (bytes32, uint256)
-        );
+        (bytes32 action, ) = abi.decode(message.data, (bytes32, uint256));
 
         if (action == ACTION_REBALANCE_IN) {
             uint256 receivedAmount = 0;
@@ -360,6 +394,14 @@ contract VaultManager is
             totalAssets += receivedAmount;
 
             emit RebalanceReceived(sourceChain, receivedAmount);
+        }
+    }
+
+    function _syncTotalAssets() internal {
+        uint256 actualBalance = aave.getUserSupplyBalance(address(this));
+        if (actualBalance != totalAssets) {
+            emit TotalAssetsSynced(totalAssets, actualBalance);
+            totalAssets = actualBalance;
         }
     }
 
@@ -382,6 +424,7 @@ contract VaultManager is
             ChainYieldData memory data = chainYieldData[chain];
             if (!data.active) continue;
             if (block.timestamp > data.timestamp + 2 hours) continue;
+
             if (data.supplyRate > bestRate) {
                 bestRate = data.supplyRate;
                 bestChain = chain;
@@ -396,10 +439,18 @@ contract VaultManager is
         uint256 transferAmount = (currentBalance * MAX_TRANSFER_BPS) / 10000;
         if (transferAmount < MIN_TRANSFER_AMOUNT) return opp;
 
-        uint256 estimatedBridgeCostUSDC = 20e6;
-        uint256 dailyGainUSDC = (delta * transferAmount) / (1e18 * 365);
+        uint256 estimatedBridgeCostUSDC = 1e6;
+        // avoid truncation by multiplying first
+        // dailyGain = (transferAmount * delta_annualized) / 365
+        // delta in 1e18, transferAmount in 1e6 (USDC)
+        uint256 dailyGainUSDC = (transferAmount * delta) /
+            ((365 days * 1e18) / 1 seconds);
+        // wait, delta is APY difference, let's say 2e16 (2%)
+        // dailyGainUSDC = (transferAmount * delta) / (1e18 * 365)
+        dailyGainUSDC = (transferAmount * delta) / (1e18 * 365);
+
         if (dailyGainUSDC == 0) return opp;
-        if (estimatedBridgeCostUSDC / dailyGainUSDC > MAX_BREAKEVEN_DAYS)
+        if (estimatedBridgeCostUSDC > dailyGainUSDC * MAX_BREAKEVEN_DAYS)
             return opp;
 
         opp = RebalanceOpportunity({
@@ -434,7 +485,7 @@ contract VaultManager is
 
     function fundLink(uint256 amount) external {
         linkToken.safeTransferFrom(msg.sender, address(this), amount);
-        emit LinkFunded(amount);
+        emit LinkFunded(msg.sender, amount);
     }
 
     function withdrawLink() external onlyOwner {
@@ -442,9 +493,14 @@ contract VaultManager is
         linkToken.safeTransfer(owner, balance);
     }
 
+    function syncTotalAssets() external onlyOwner {
+        _syncTotalAssets();
+    }
+
     function getUserBalance(address user) external view returns (uint256) {
         if (totalShares == 0) return 0;
-        return (userShares[user] * totalAssets) / totalShares;
+        uint256 actualBalance = aave.getUserSupplyBalance(address(this));
+        return (userShares[user] * actualBalance) / totalShares;
     }
 
     function getCurrentOpportunity()
@@ -456,6 +512,7 @@ contract VaultManager is
     }
 
     function cooldownRemaining() external view returns (uint256) {
+        if (lastRebalanceTimestamp == 0) return 0;
         uint256 available = lastRebalanceTimestamp + REBALANCE_COOLDOWN;
         if (block.timestamp >= available) return 0;
         return available - block.timestamp;
@@ -478,5 +535,9 @@ contract VaultManager is
             rates[i] = data.supplyRate;
             timestamps[i] = data.timestamp;
         }
+    }
+
+    function getLinkBalance() external view returns (uint256) {
+        return linkToken.balanceOf(address(this));
     }
 }
