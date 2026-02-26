@@ -1,0 +1,24 @@
+# General
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/
+
+# Environment
+.env*
+!.env.example
+
+**/node_modules/
+**/frontend/.next/
+**/frontend/out/
+**/frontend/build/
+**/frontend/dist/
+**/frontend/pnpm-lock.yaml
+
+**/smart-contract/out/
+**/smart-contract/cache/
+**/smart-contract/broadcast/
+**/smart-contract/lib/
+smart-contract/foundry.lock
+smart-contract/.gas-report
