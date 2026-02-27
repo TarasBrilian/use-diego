@@ -28,9 +28,17 @@ staging-settings:
   rpcs:
     - chain-name: ethereum-testnet-sepolia
       url: https://ethereum-sepolia-rpc.publicnode.com
+    - chain-name: ethereum-testnet-sepolia-arbitrum-1
+      url: https://arb-sepolia.g.alchemy.com/v2/czzNRTsjnAUcR9rlDQn3zCjhkd-IT8mo
+    - chain-name: ethereum-testnet-sepolia-base-1
+      url: https://base-sepolia.g.alchemy.com/v2/czzNRTsjnAUcR9rlDQn3zCjhkd-IT8mo
 
 # ==========================================================================
 production-settings:
   rpcs:
     - chain-name: ethereum-testnet-sepolia
       url: https://ethereum-sepolia-rpc.publicnode.com
+    - chain-name: ethereum-testnet-sepolia-arbitrum-1
+      url: https://arb-sepolia.g.alchemy.com/v2/czzNRTsjnAUcR9rlDQn3zCjhkd-IT8mo
+    - chain-name: ethereum-testnet-sepolia-base-1
+      url: https://base-sepolia.g.alchemy.com/v2/czzNRTsjnAUcR9rlDQn3zCjhkd-IT8mo

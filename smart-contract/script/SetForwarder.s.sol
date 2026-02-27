@@ -5,9 +5,9 @@ import "forge-std/console.sol";
 import {VaultManager} from "../src/core/VaultManager.sol";
 
 contract SetForwarder is Script {
-    address constant VAULT = 0x526282Cc7a046204Eb8Ed3B52612Dd563a820242;
+    address constant VAULT = 0x37c78AfB59a2D66811565Ca2431BFa395eD7666b;
     address constant AUTOMATION_FORWARDER =
-        0xAA74D968780E0B4B2797c896654c355482d6DD61;
+        0x712e14843DD031cB47B203470E0942E5dcaAA05b;
 
     function run() external {
         require(VAULT != address(0), "Set VAULT");

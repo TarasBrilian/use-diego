@@ -10,9 +10,9 @@ interface ISimpleERC20 {
 
 contract SetupArbitrumSepolia is Script {
     address constant VAULT_ARB =
-        address(0x35e0f76D22ad27C97222d9A043F2b47448eff0B3);
+        address(0xe195954e128D7c65ba0632128B4F2d84EfE6A8D7);
     address constant VAULT_BASE =
-        address(0x526282Cc7a046204Eb8Ed3B52612Dd563a820242);
+        address(0x37c78AfB59a2D66811565Ca2431BFa395eD7666b);
     address constant LINK_TOKEN = 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E;
 
     uint64 constant ARB_SELECTOR = 3478487238524512106;

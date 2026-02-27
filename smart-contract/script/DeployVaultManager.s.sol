@@ -5,14 +5,14 @@ import {Script, console} from "forge-std/Script.sol";
 import {VaultManager} from "../src/core/VaultManager.sol";
 
 contract DeployVaultManager is Script {
-    address constant CCIP_ROUTER = 0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165;
-    address constant LINK_TOKEN = 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E;
-    uint64 constant CHAIN_SELECTOR = 3478487238524512106;
+    address constant CCIP_ROUTER = 0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93;
+    address constant LINK_TOKEN = 0xE4aB69C077896252FAFBD49EFD26B5D171A32410;
+    uint64 constant CHAIN_SELECTOR = 10344971235874465080;
 
     address constant USDC_ADDRESS =
-        address(0x6BA1b0802D4f483c9a884c5DaA48c35e1Da8737B);
+        address(0x7f8033ff9992730f133b75a571E6025ed34a639A);
     address constant AAVE_ADDRESS =
-        address(0x33e5969EA863D298000D7E0414f6a3dc358c3dE3);
+        address(0x61106cA6255a72096Ca417D0455f520eb5765219);
     address constant CRE_OPERATOR =
         address(0x3Ebf8ffC3F1517f9760dD2BfF36f934d19fa6cD8);
 

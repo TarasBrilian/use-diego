@@ -443,11 +443,7 @@ contract VaultManager is
         // avoid truncation by multiplying first
         // dailyGain = (transferAmount * delta_annualized) / 365
         // delta in 1e18, transferAmount in 1e6 (USDC)
-        uint256 dailyGainUSDC = (transferAmount * delta) /
-            ((365 days * 1e18) / 1 seconds);
-        // wait, delta is APY difference, let's say 2e16 (2%)
-        // dailyGainUSDC = (transferAmount * delta) / (1e18 * 365)
-        dailyGainUSDC = (transferAmount * delta) / (1e18 * 365);
+        uint256 dailyGainUSDC = (transferAmount * delta) / 1e18 / 365;
 
         if (dailyGainUSDC == 0) return opp;
         if (estimatedBridgeCostUSDC > dailyGainUSDC * MAX_BREAKEVEN_DAYS)
