@@ -9,16 +9,21 @@ import {
     RainbowKitProvider,
     darkTheme,
 } from "@rainbow-me/rainbowkit";
-import { createConfig, WagmiProvider, http } from "wagmi";
+import { WagmiProvider, http, Config } from "wagmi";
 import { arbitrumSepolia, baseSepolia } from "wagmi/chains";
 
-const config = createConfig({
-    chains: [arbitrumSepolia, baseSepolia],
+const chains = [arbitrumSepolia, baseSepolia] as const;
+
+const config = getDefaultConfig({
+    appName: 'Diego Vault',
+    projectId: process.env.NEXT_PUBLIC_PROJECT_ID!,
+    chains,
     transports: {
-        [arbitrumSepolia.id]: http("https://arb-sepolia.g.alchemy.com/v2/czzNRTsjnAUcR9rlDQn3zCjhkd-IT8mo"),
-        [baseSepolia.id]: http("https://base-sepolia.g.alchemy.com/v2/czzNRTsjnAUcR9rlDQn3zCjhkd-IT8mo"),
+        [arbitrumSepolia.id]: http(process.env.NEXT_PUBLIC_ARBITRUM_SEPOLIA_RPC_URL!),
+        [baseSepolia.id]: http(process.env.NEXT_PUBLIC_BASE_SEPOLIA_RPC_URL!),
     },
-});
+    ssr: true,
+}) as Config;
 
 const queryClient = new QueryClient();
 
