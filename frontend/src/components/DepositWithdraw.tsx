@@ -37,11 +37,11 @@ export function DepositWithdraw() {
         query: { enabled: !!address },
     });
 
-    // Read User Shares
-    const { data: userShares, refetch: refetchShares } = useReadContract({
+    // Read User USDC Balance
+    const { data: userBalance, refetch: refetchUserBalance } = useReadContract({
         address: vaultAddress,
         abi: vaultManagerAbi,
-        functionName: "userShares",
+        functionName: "getUserBalance",
         args: [address!],
         query: { enabled: !!address },
     });
@@ -54,11 +54,11 @@ export function DepositWithdraw() {
         if (isConfirmed && hash) {
             refetchBalance();
             refetchAllowance();
-            refetchShares();
+            refetchUserBalance();
             setSuccessTxHash(hash);
             setShowSuccess(true);
         }
-    }, [isConfirmed, hash, refetchBalance, refetchAllowance, refetchShares]);
+    }, [isConfirmed, hash, refetchBalance, refetchAllowance, refetchUserBalance]);
 
     const handleAction = async () => {
         setShowSuccess(false); // Reset popup on new action
@@ -123,7 +123,7 @@ export function DepositWithdraw() {
                     <span className="text-xs text-slate-500 font-mono">
                         Balance: {isDeposit
                             ? (usdcBalance ? Number(formatUnits(usdcBalance as bigint, 6)).toLocaleString() : "0")
-                            : (userShares ? Number(formatUnits(userShares as bigint, 6)).toLocaleString() : "0")}
+                            : (userBalance ? Number(formatUnits(userBalance as bigint, 6)).toLocaleString() : "0")}
                     </span>
                 </div>
                 <div className="relative">
@@ -138,7 +138,7 @@ export function DepositWithdraw() {
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-blue-400 hover:text-blue-300 uppercase"
                         onClick={() => {
                             if (isDeposit) setAmount(formatUnits(usdcBalance as bigint, 6));
-                            else setAmount(formatUnits(userShares as bigint, 6));
+                            else setAmount(formatUnits(userBalance as bigint, 6));
                         }}
                     >
                         Max

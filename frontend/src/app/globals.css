@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'DM Mono';
+  src: url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+}
+
+@theme {
+  --font-mono: 'DM Mono', monospace;
+  --font-ui: 'Geist', sans-serif;
+}
+
+:root {
+  --bg-base: #0A0B0E;
+  --bg-surface: #111318;
+  --bg-elevated: #1A1D24;
+  --bg-hover: #222630;
+
+  --border: rgba(255, 255, 255, 0.06);
+  --border-accent: rgba(0, 229, 195, 0.3);
+
+  --text-primary: #F0F2F5;
+  --text-secondary: #8B8FA8;
+  --text-muted: #4A4D60;
+
+  --accent-teal: #00E5C3;
+  --accent-teal-dim: rgba(0, 229, 195, 0.15);
+  --accent-orange: #F5A623;
+  --accent-red: #FF4D4D;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes dataFlash {
+  0% {
+    background: rgba(0, 229, 195, 0.15);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.animate-data-flash {
+  animation: dataFlash 600ms ease-out;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.glow-teal {
+  box-shadow: 0 0 12px #00E5C3, 0 0 40px rgba(0, 229, 195, 0.3);
+  animation: pulse-glow 2s infinite;
+}
+
+/* Custom scrollbar for terminal feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-elevated);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-hover);
+}

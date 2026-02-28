@@ -9,15 +9,13 @@ interface ISimpleERC20 {
 }
 
 contract SetupBaseSepolia is Script {
-    address constant VAULT_ARB =
-        address(0xe195954e128D7c65ba0632128B4F2d84EfE6A8D7);
-    address constant VAULT_BASE =
-        address(0x37c78AfB59a2D66811565Ca2431BFa395eD7666b);
+    address VAULT_ARB = address(vm.envAddress("VAULT_MANAGER_ADDRESS_ARB"));
+    address VAULT_BASE = address(vm.envAddress("VAULT_MANAGER_ADDRESS_BASE"));
     address constant LINK_TOKEN = 0xE4aB69C077896252FAFBD49EFD26B5D171A32410;
 
     uint64 constant ARB_SELECTOR = 3478487238524512106;
     uint64 constant BASE_SELECTOR = 10344971235874465080;
-    uint256 constant LINK_FUND_AMOUNT = 2 ether;
+    uint256 constant LINK_FUND_AMOUNT = 0.1 ether;
 
     uint256 constant ARB_INITIAL_APY = 8e16; // 8%
     uint256 constant BASE_INITIAL_APY = 3e16; // 3%
@@ -53,4 +51,4 @@ contract SetupBaseSepolia is Script {
         vm.stopBroadcast();
     }
 }
-// forge script script/SetupBase.s.sol:SetupBaseSepolia --rpc-url $RPC_URL_BASE --broadcast
+// forge script script/SetupBase.s.sol:SetupBaseSepolia --rpc-url $RPC_URL_BASE --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY

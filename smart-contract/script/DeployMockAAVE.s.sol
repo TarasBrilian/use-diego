@@ -12,7 +12,7 @@ contract DeployMockAAVE is Script {
         uint256 ltv = 0.8e18;
         MockAAVEV3 aave = new MockAAVEV3(
             address(0xF5C980d2abdB533038f361D45167655c24B75185), //WETH
-            address(0x7f8033ff9992730f133b75a571E6025ed34a639A), //USDC
+            address(vm.envAddress("USDC_ADDRESS_BASE")), //USDC
             address(0x81E6d6CE1a3840d7F98f23aACC30ad9Fc5D5f607), //Oracle
             ltv
         );

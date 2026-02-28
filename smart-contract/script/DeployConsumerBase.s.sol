@@ -10,12 +10,12 @@ contract DeployConsumer is Script {
         vm.startBroadcast(vm.envUint("PRIVATE_KEY"));
 
         UseDiegoConsumer consumer = new UseDiegoConsumer(
-            vm.envAddress("FORWARDER_ADDRESS_ARB"),
-            vm.envAddress("VAULT_MANAGER_ADDRESS_ARB")
+            vm.envAddress("FORWARDER_ADDRESS_BASE"),
+            vm.envAddress("VAULT_MANAGER_ADDRESS_BASE")
         );
         console.log("UseDiegoConsumer deployed at:", address(consumer));
 
         vm.stopBroadcast();
     }
 }
-// forge script script/DeployConsumer.s.sol:DeployConsumer --rpc-url $RPC_URL_ARB --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
+// forge script script/DeployConsumerBase.s.sol:DeployConsumer --rpc-url $RPC_URL_BASE --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY

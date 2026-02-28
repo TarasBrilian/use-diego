@@ -5,9 +5,9 @@ import "forge-std/console.sol";
 import {VaultManager} from "../src/core/VaultManager.sol";
 
 contract SetForwarder is Script {
-    address VAULT = vm.envAddress("VAULT_MANAGER_ADDRESS_ARB");
+    address VAULT = vm.envAddress("VAULT_MANAGER_ADDRESS_BASE");
     address AUTOMATION_FORWARDER =
-        vm.envAddress("AUTOMATION_FORWARDER_ADDRESS_ARB");
+        vm.envAddress("AUTOMATION_FORWARDER_ADDRESS_BASE");
 
     function run() external {
         require(VAULT != address(0), "Set VAULT");
@@ -27,4 +27,4 @@ contract SetForwarder is Script {
         vm.stopBroadcast();
     }
 }
-// forge script script/SetForwarder.s.sol:SetForwarder --rpc-url $RPC_URL_ARB --broadcast
+// forge script script/SetForwarderBase.s.sol:SetForwarder --rpc-url $RPC_URL_BASE --broadcast

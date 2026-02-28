@@ -368,6 +368,10 @@ contract VaultManager is
         messageId = ccipRouter.ccipSend(targetChain, message);
     }
 
+    function resetCooldown() external onlyOwner {
+        lastRebalanceTimestamp = 0;
+    }
+
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal override whenNotPaused {

@@ -30,8 +30,23 @@ export function VaultOverview() {
         functionName: "paused",
     });
 
+    const { data: yields } = useReadContract({
+        address: vaultAddress,
+        abi: vaultManagerAbi,
+        functionName: "getAllYieldData",
+    });
+
     const tvl = Number(formatUnits(totalAssets as bigint || BigInt(0), 6));
-    const apy = 7.84;
+
+    // Calculate average APY from all monitored chains
+    let apy = 0;
+    if (yields && Array.isArray(yields) && yields[1] && yields[1].length > 0) {
+        const rates = yields[1] as bigint[];
+        const sum = rates.reduce((acc, curr) => acc + Number(formatUnits(curr, 16)), 0);
+        apy = sum / rates.length;
+    } else {
+        apy = 0; // Fallback or loading state
+    }
 
     return (
         <div className="space-y-4 mb-8">

@@ -2,17 +2,17 @@
   "schedule": "*/30 * * * * *",
   "evms": [
     {
-      "vaultManagerAddress": "0xe195954e128D7c65ba0632128B4F2d84EfE6A8D7",
-      "consumerAddress": "0x789b93c08FadB2a1648d56209e94066A180072aA",
-      "mockAaveAddress": "0x33e5969EA863D298000D7E0414f6a3dc358c3dE3",
+      "vaultManagerAddress": "0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66",
+      "consumerAddress": "0xCCedf582BD0c94c68761A4Ab1Ee5445aA7E29642",
+      "mockAaveAddress": "0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7",
       "chainSelectorName": "ethereum-testnet-sepolia-arbitrum-1",
       "chainSelector": "3478487238524512106",
       "gasLimit": "500000"
     },
     {
-      "vaultManagerAddress": "0x37c78AfB59a2D66811565Ca2431BFa395eD7666b",
-      "consumerAddress": "0xB746E9106C3EE3195edBedDB132be756124d63BF",
-      "mockAaveAddress": "0x61106cA6255a72096Ca417D0455f520eb5765219",
+      "vaultManagerAddress": "0x5aAe96534Aa5f481A1B92eC8dD48f7A5423b13C4",
+      "consumerAddress": "0xe3521D9d8b0CF6de832bc23e3ED41b919Ec31647",
+      "mockAaveAddress": "0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA",
       "chainSelectorName": "ethereum-testnet-sepolia-base-1",
       "chainSelector": "10344971235874465080",
       "gasLimit": "500000"

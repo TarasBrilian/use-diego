@@ -16,7 +16,6 @@ import { type Address, decodeFunctionResult, encodeFunctionData, zeroAddress, en
 import { z } from 'zod'
 import { vaultManager, mockAAVEV3, useDiegoConsumer } from '../contracts/abi'
 
-// ─── Config Schema ────────────────────────────────────────────────────────────
 
 const configSchema = z.object({
 	schedule: z.string(),
@@ -35,25 +34,18 @@ const configSchema = z.object({
 type Config = z.infer<typeof configSchema>
 type EvmConfig = Config['evms'][0]
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface ChainYieldInfo {
 	chainSelectorName: string
 	chainSelector: bigint
-	supplyRate: bigint      // 1e18 basis, contoh 8e16 = 8%
+	supplyRate: bigint
 	vaultManagerAddress: string
 }
 
-// ─── Utility ──────────────────────────────────────────────────────────────────
 
 const safeJsonStringify = (obj: any): string =>
 	JSON.stringify(obj, (_, value) => (typeof value === 'bigint' ? value.toString() : value), 2)
 
-// ─── Core Functions ───────────────────────────────────────────────────────────
-
-/**
- * Baca supplyAPY dari MockAave di satu chain
- */
 const fetchSupplyRate = (runtime: Runtime<Config>, evmConfig: EvmConfig): bigint => {
 	const network = getNetwork({
 		chainFamily: 'evm',
@@ -92,9 +84,6 @@ const fetchSupplyRate = (runtime: Runtime<Config>, evmConfig: EvmConfig): bigint
 	return supplyRate as bigint
 }
 
-/**
- * Baca semua yield rate dari semua chain yang dimonitor
- */
 const fetchAllYieldRates = (runtime: Runtime<Config>): ChainYieldInfo[] => {
 	const results: ChainYieldInfo[] = []
 
@@ -116,18 +105,12 @@ const fetchAllYieldRates = (runtime: Runtime<Config>): ChainYieldInfo[] => {
 			})
 		} catch (err) {
 			runtime.log(`Failed to fetch yield from ${evmConfig.chainSelectorName}: ${err}`)
-			// Lanjut ke chain berikutnya, jangan throw supaya chain lain tetap diupdate
 		}
 	}
 
 	return results
 }
 
-/**
- * Tulis yield data ke VaultManager di satu chain
- * VaultManager di tiap chain butuh tahu yield rate di semua chain lain
- * supaya _findBestOpportunity() bisa compare
- */
 const updateYieldDataOnChain = (
 	runtime: Runtime<Config>,
 	evmConfig: EvmConfig,
@@ -156,7 +139,6 @@ const updateYieldDataOnChain = (
 				[yieldInfo.chainSelector, yieldInfo.supplyRate]
 			)
 
-			// Step 1: Generate report via consensus
 			const reportResponse = runtime
 				.report({
 					encodedPayload: hexToBase64(rawReport),
@@ -166,7 +148,6 @@ const updateYieldDataOnChain = (
 				})
 				.result()
 
-			// Step 2: Write via writeReport
 			const resp = evmClient
 				.writeReport(runtime, {
 					receiver: evmConfig.consumerAddress,
@@ -192,15 +173,11 @@ const updateYieldDataOnChain = (
 	}
 }
 
-/**
- * Detect anomali — yield spike > 50% dalam satu cycle
- * Kalau terdeteksi, pause semua vault sebagai safeguard
- */
 const detectAnomaly = (
 	runtime: Runtime<Config>,
 	current: ChainYieldInfo[],
 ): boolean => {
-	const ANOMALY_THRESHOLD = 50e16 // 50% — tidak wajar dalam 1 cycle
+	const ANOMALY_THRESHOLD = 50e16
 
 	for (const info of current) {
 		if (info.supplyRate > BigInt(ANOMALY_THRESHOLD)) {
@@ -214,9 +191,6 @@ const detectAnomaly = (
 	return false
 }
 
-/**
- * Emergency pause semua vault kalau anomali terdeteksi
- */
 const pauseAllVaults = (runtime: Runtime<Config>): void => {
 	for (const evmConfig of runtime.config.evms) {
 		try {
@@ -263,8 +237,6 @@ const pauseAllVaults = (runtime: Runtime<Config>): void => {
 	}
 }
 
-// ─── Main Workflow ────────────────────────────────────────────────────────────
-
 const onCronTrigger = (runtime: Runtime<Config>, payload: CronPayload): string => {
 	if (!payload.scheduledExecutionTime) {
 		throw new Error('Scheduled execution time is required')
@@ -274,7 +246,6 @@ const onCronTrigger = (runtime: Runtime<Config>, payload: CronPayload): string =
 	runtime.log(`Scheduled at: ${payload.scheduledExecutionTime}`)
 	runtime.log(`Monitoring ${runtime.config.evms.length} chains`)
 
-	// Step 1: Fetch yield rate dari semua chain
 	runtime.log('--- Step 1: Fetching yield rates from all chains ---')
 	const allYieldInfos = fetchAllYieldRates(runtime)
 
@@ -287,7 +258,6 @@ const onCronTrigger = (runtime: Runtime<Config>, payload: CronPayload): string =
 		runtime.log(`  ${info.chainSelectorName}: ${Number(info.supplyRate) / 1e16}%`)
 	}
 
-	// Step 2: Anomaly detection
 	runtime.log('--- Step 2: Anomaly detection ---')
 	const isAnomaly = detectAnomaly(runtime, allYieldInfos)
 
@@ -299,9 +269,6 @@ const onCronTrigger = (runtime: Runtime<Config>, payload: CronPayload): string =
 
 	runtime.log('No anomaly detected, proceeding...')
 
-	// Step 3: Update yield data di semua VaultManager
-	// Setiap VaultManager perlu tahu yield rate di semua chain
-	// supaya checkUpkeep() bisa compare dan Automation bisa trigger
 	runtime.log('--- Step 3: Updating yield data on all VaultManagers ---')
 
 	for (const evmConfig of runtime.config.evms) {
@@ -309,7 +276,6 @@ const onCronTrigger = (runtime: Runtime<Config>, payload: CronPayload): string =
 		updateYieldDataOnChain(runtime, evmConfig, allYieldInfos)
 	}
 
-	// Step 4: Summary
 	const summary = {
 		status: 'success',
 		timestamp: payload.scheduledExecutionTime,
@@ -325,8 +291,6 @@ const onCronTrigger = (runtime: Runtime<Config>, payload: CronPayload): string =
 
 	return safeJsonStringify(summary)
 }
-
-// ─── Init ─────────────────────────────────────────────────────────────────────
 
 const initWorkflow = (config: Config) => {
 	const cronTrigger = new CronCapability()

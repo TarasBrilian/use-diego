@@ -4,13 +4,13 @@ pragma solidity ^0.8.13;
 import {Script, console} from "forge-std/Script.sol";
 import {VaultManager} from "../src/core/VaultManager.sol";
 
-contract DeployVaultManager is Script {
-    address constant CCIP_ROUTER = 0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165;
-    address constant LINK_TOKEN = 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E;
-    uint64 constant CHAIN_SELECTOR = 3478487238524512106;
+contract DeployVaultManagerBase is Script {
+    address constant CCIP_ROUTER = 0xD3b06cEbF099CE7DA4AcCf578aaebFDBd6e88a93;
+    address constant LINK_TOKEN = 0xE4aB69C077896252FAFBD49EFD26B5D171A32410;
+    uint64 constant CHAIN_SELECTOR = 10344971235874465080;
 
-    address USDC_ADDRESS = address(vm.envAddress("USDC_ADDRESS_ARB"));
-    address AAVE_ADDRESS = address(vm.envAddress("MOCK_AAVEV3_ARB"));
+    address USDC_ADDRESS = address(vm.envAddress("USDC_ADDRESS_BASE"));
+    address AAVE_ADDRESS = address(0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA);
     address CRE_OPERATOR = address(0x3Ebf8ffC3F1517f9760dD2BfF36f934d19fa6cD8);
 
     function run() external {
@@ -46,4 +46,4 @@ contract DeployVaultManager is Script {
         vm.stopBroadcast();
     }
 }
-// forge script script/DeployVaultManager.s.sol:DeployVaultManager --rpc-url $RPC_URL_ARB --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY
+// forge script script/DeployVaultManagerBase.s.sol:DeployVaultManagerBase --rpc-url $RPC_URL_BASE --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY

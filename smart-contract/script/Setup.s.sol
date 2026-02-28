@@ -9,15 +9,13 @@ interface ISimpleERC20 {
 }
 
 contract SetupArbitrumSepolia is Script {
-    address constant VAULT_ARB =
-        address(0xe195954e128D7c65ba0632128B4F2d84EfE6A8D7);
-    address constant VAULT_BASE =
-        address(0x37c78AfB59a2D66811565Ca2431BFa395eD7666b);
+    address VAULT_ARB = address(vm.envAddress("VAULT_MANAGER_ADDRESS_ARB"));
+    address VAULT_BASE = address(vm.envAddress("VAULT_MANAGER_ADDRESS_BASE"));
     address constant LINK_TOKEN = 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E;
 
     uint64 constant ARB_SELECTOR = 3478487238524512106;
     uint64 constant BASE_SELECTOR = 10344971235874465080;
-    uint256 constant LINK_FUND_AMOUNT = 2 ether;
+    uint256 constant LINK_FUND_AMOUNT = 0.1 ether;
 
     uint256 constant ARB_INITIAL_APY = 8e16; // 8%
     uint256 constant BASE_INITIAL_APY = 3e16; // 3%
@@ -39,7 +37,7 @@ contract SetupArbitrumSepolia is Script {
 
         ISimpleERC20(LINK_TOKEN).approve(VAULT_ARB, LINK_FUND_AMOUNT);
         vault.fundLink(LINK_FUND_AMOUNT);
-        console.log("fundLink: 2 LINK");
+        console.log("fundLink: 0.1 LINK");
 
         vault.updateYieldData(ARB_SELECTOR, ARB_INITIAL_APY);
         vault.updateYieldData(BASE_SELECTOR, BASE_INITIAL_APY);
@@ -51,4 +49,4 @@ contract SetupArbitrumSepolia is Script {
     }
 }
 
-// forge script script/Setup.s.sol:SetupArbitrumSepolia --rpc-url $RPC_URL_ARB --broadcast
+// forge script script/Setup.s.sol:SetupArbitrumSepolia --rpc-url $RPC_URL_ARB --broadcast --verify --etherscan-api-key $ETHERSCAN_API_KEY

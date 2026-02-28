@@ -18514,6 +18514,62 @@ var fetchAllYieldRates = (runtime2) => {
   }
   return results;
 };
+var checkAndPerformUpkeep = (runtime2, evmConfig) => {
+  const network248 = getNetwork({
+    chainFamily: "evm",
+    chainSelectorName: evmConfig.chainSelectorName,
+    isTestnet: true
+  });
+  if (!network248)
+    return;
+  const evmClient = new ClientCapability(network248.chainSelector.selector);
+  try {
+    runtime2.log(`[Scanning] Checking upkeep condition for ${evmConfig.chainSelectorName}...`);
+    const checkData = encodeFunctionData({
+      abi: vaultManager,
+      functionName: "checkUpkeep",
+      args: ["0x"]
+    });
+    const contractCall = evmClient.callContract(runtime2, {
+      call: encodeCallMsg({
+        from: zeroAddress,
+        to: evmConfig.vaultManagerAddress,
+        data: checkData
+      }),
+      blockNumber: LAST_FINALIZED_BLOCK_NUMBER
+    }).result();
+    const [upkeepNeeded, performData] = decodeFunctionResult({
+      abi: vaultManager,
+      functionName: "checkUpkeep",
+      data: bytesToHex(contractCall.data)
+    });
+    if (!upkeepNeeded) {
+      runtime2.log(`[Scanning] No rebalance needed for ${evmConfig.chainSelectorName}.`);
+      return;
+    }
+    runtime2.log(`[Trigger] Rebalance opportunity found! Executing performUpkeep on ${evmConfig.chainSelectorName}...`);
+    const actionPayload = encodeAbiParameters(parseAbiParameters("uint8 action, bytes data"), [1, performData]);
+    const reportResponse = runtime2.report({
+      encodedPayload: hexToBase64(actionPayload),
+      encoderName: "evm",
+      signingAlgo: "ecdsa",
+      hashingAlgo: "keccak256"
+    }).result();
+    const resp = evmClient.writeReport(runtime2, {
+      receiver: evmConfig.consumerAddress,
+      report: reportResponse,
+      gasConfig: {
+        gasLimit: evmConfig.gasLimit
+      }
+    }).result();
+    if (resp.txStatus !== TxStatus.SUCCESS) {
+      throw new Error(`TX failed: ${resp.errorMessage || resp.txStatus}`);
+    }
+    runtime2.log(`[Trigger] Successfully triggered rebalance via Consumer! txHash: ${bytesToHex(resp.txHash || new Uint8Array(32))}`);
+  } catch (err) {
+    runtime2.log(`[Error] Failed upkeep check/trigger on ${evmConfig.chainSelectorName}: ${err}`);
+  }
+};
 var updateYieldDataOnChain = (runtime2, evmConfig, allYieldInfos) => {
   const network248 = getNetwork({
     chainFamily: "evm",
@@ -18622,6 +18678,10 @@ var onCronTrigger = (runtime2, payload) => {
   for (const evmConfig of runtime2.config.evms) {
     runtime2.log(`Updating UseDiegoConsumer on ${evmConfig.chainSelectorName}...`);
     updateYieldDataOnChain(runtime2, evmConfig, allYieldInfos);
+  }
+  runtime2.log("--- Step 4: CheckUpkeep & Trigger Rebalance ---");
+  for (const evmConfig of runtime2.config.evms) {
+    checkAndPerformUpkeep(runtime2, evmConfig);
   }
   const summary = {
     status: "success",
