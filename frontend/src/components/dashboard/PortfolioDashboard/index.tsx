@@ -257,7 +257,7 @@ export const PortfolioDashboard = () => {
                     <div className="flex justify-between items-center mb-8">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-blue-600/10 border border-blue-600/20 flex items-center justify-center text-blue-500 font-bold font-mono">
-                                <Image src="/assets/base_square_blue.svg" alt="Base" width={24} height={24} />
+                                <Image src="/assets/Base_square_blue.svg" alt="Base" width={24} height={24} />
                             </div>
                             <div>
                                 <div className="text-white font-bold">Base</div>
