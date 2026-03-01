@@ -20,7 +20,7 @@ export const useVaultManager = (chainKey: 'arbitrum' | 'base') => {
     const userBalance = useReadContract({
         address: contract.vaultManager as `0x${string}`,
         abi: VAULT_MANAGER_ABI,
-        functionName: 'getUserSupplyBalance',
+        functionName: 'getUserBalance',
         args: address ? [address] : undefined,
         chainId: contract.chainId,
         query: {
@@ -49,12 +49,36 @@ export const useVaultManager = (chainKey: 'arbitrum' | 'base') => {
         }
     });
 
+    const userShares = useReadContract({
+        address: contract.vaultManager as `0x${string}`,
+        abi: VAULT_MANAGER_ABI,
+        functionName: 'userShares',
+        args: address ? [address] : undefined,
+        chainId: contract.chainId,
+        query: {
+            enabled: !!address,
+            refetchInterval: 15_000,
+        }
+    });
+
+    const paused = useReadContract({
+        address: contract.vaultManager as `0x${string}`,
+        abi: VAULT_MANAGER_ABI,
+        functionName: 'paused',
+        chainId: contract.chainId,
+        query: {
+            refetchInterval: 15_000,
+        }
+    });
+
     return {
         totalAssets: totalAssets.data as bigint | undefined,
         userBalance: userBalance.data as bigint | undefined,
+        userShares: userShares.data as bigint | undefined,
         linkBalance: linkBalance.data as bigint | undefined,
         cooldown: cooldown.data as bigint | undefined,
-        isLoading: totalAssets.isLoading || userBalance.isLoading,
-        error: totalAssets.error || userBalance.error,
+        paused: paused.data as boolean | undefined,
+        isLoading: totalAssets.isLoading || userBalance.isLoading || userShares.isLoading,
+        error: totalAssets.error || userBalance.error || userShares.error,
     };
 };

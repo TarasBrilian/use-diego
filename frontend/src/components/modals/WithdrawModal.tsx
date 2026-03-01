@@ -26,7 +26,7 @@ export const WithdrawModal = ({ isOpen, onClose, chain }: WithdrawModalProps) =>
     const { data: balance, refetch: refetchBalance } = useReadContract({
         address: contract.vaultManager as `0x${string}`,
         abi: VAULT_MANAGER_ABI,
-        functionName: 'getUserSupplyBalance',
+        functionName: 'userShares',
         args: address ? [address] : undefined,
         chainId: contract.chainId,
     });

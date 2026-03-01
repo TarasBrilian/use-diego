@@ -23,11 +23,10 @@ export const YieldSpread = () => {
     const padding = 40;
     const arcPath = `M ${padding} ${height - padding} Q ${width / 2} ${padding} ${width - padding} ${height - padding}`;
 
-    // We don't return early for loading anymore to keep the layout stable
-    const isFetching = isLoading; // In a production app, we'd distinguish between first load and refetch
+    const isFetching = isLoading;
 
     return (
-        <div className="w-full bg-bg-surface border border-border rounded-lg p-8 relative overflow-hidden group">
+        <div className="w-full bg-bg-surface border border-border rounded-lg p-8 relative overflow-hidden group mt-6">
             {/* Background Grid Texture */}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
                 style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
@@ -103,13 +102,13 @@ export const YieldSpread = () => {
                         <div className={`w-3 h-3 flex items-center justify-center transition-opacity ${isLoading ? 'opacity-30' : 'opacity-100'}`}>
                             <Image src="/assets/arbitrum-arb-logo.svg" alt="Arb" width={12} height={12} />
                         </div>
-                        ARB_LP_STABLE
+                        AAVE Arbitrum
                     </div>
                     <div className="flex items-center gap-2">
                         <div className={`w-3 h-3 flex items-center justify-center transition-opacity ${isLoading ? 'opacity-30' : 'opacity-100'}`}>
                             <Image src="/assets/Base_square_blue.svg" alt="Base" width={12} height={12} />
                         </div>
-                        BASE_LP_STABLE
+                        AAVE Base
                     </div>
                 </div>
             </div>

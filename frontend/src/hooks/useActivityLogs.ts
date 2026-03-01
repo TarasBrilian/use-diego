@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { usePublicClient } from "wagmi";
-import { parseAbiItem, formatUnits, type Address } from "viem";
-import { chains, vaultManagerAbi } from "@/config/contracts";
+import { parseAbiItem, formatUnits, type Address, type Log } from "viem";
+import { chains } from "@/config/contracts";
 import { arbitrumSepolia, baseSepolia } from "viem/chains";
 
 export type ActivityLogType = "deposit" | "rebalance" | "oracle";

@@ -1,154 +1,322 @@
-# Trying out the Developer PoR example
+# CrossYield — End-to-End Demo Guide
 
-This template provides an end-to-end Proof-of-Reserve (PoR) example (including precompiled smart contracts). It's designed to showcase key CRE capabilities and help you get started with local simulation quickly.
+CrossYield is a cross-chain yield optimizer that automatically moves liquidity from lower-yield chains to higher-yield chains using Chainlink CRE, CCIP, and Automation.
 
-Follow the steps below to run the example:
+---
 
-## 1. Initialize CRE project
-
-Start by initializing a new CRE project. This will scaffold the necessary project structure and a template workflow. Run cre init in the directory where you'd like your CRE project to live.
-
-Example output:
+## Architecture Overview
 
 ```
-Project name?: my_cre_project
-✔ Custom data feed: Typescript updating on-chain data periodically using offchain API data
-✔ Workflow name?: workflow01
+CRE Workflow (cron trigger)
+    │
+    ├── Read supplyRate from MockAave on each chain
+    ├── Detect anomaly (rate > 50%)
+    └── Send report to UseDiegoConsumer via Forwarder
+            │
+            └── updateYieldData() → VaultManager
+                        │
+                        └── Chainlink Automation
+                                │
+                                checkUpkeep() → true if delta > 2% and breakeven < 14 days
+                                        │
+                                        performUpkeep()
+                                                │
+                                                withdraw from MockAave
+                                                        │
+                                                        CCIP Bridge (ARB → BASE)
+                                                                │
+                                                                _ccipReceive() → supply to MockAave BASE
 ```
 
-## 2. Update .env file
+---
 
-You need to add a private key to the .env file. This is specifically required if you want to simulate chain writes. For that to work the key should be valid and funded.
-If your workflow does not do any chain write then you can keep a dummy key as a private key. e.g.
+## Contract Addresses
 
+### Arbitrum Sepolia
+| Contract | Address |
+|---|---|
+| VaultManager | `0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66` |
+| UseDiegoConsumer | `0xCCedf582BD0c94c68761A4Ab1Ee5445aA7E29642` |
+| MockAAVEV3 | `0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7` |
+| CCIP-BnM (USDC) | `0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D` |
+| LINK Token | `0xb1D4538B4571d411F07960EF2838Ce337FE1E80E` |
+| Automation Forwarder | `0x53b86167c4658b77132c6481b91faB09C3af72C9` |
+
+### Base Sepolia
+| Contract | Address |
+|---|---|
+| VaultManager | `0x5aAe96534Aa5f481A1B92eC8dD48f7A5423b13C4` |
+| UseDiegoConsumer | `0xe3521D9d8b0CF6de832bc23e3ED41b919Ec31647` |
+| MockAAVEV3 | `0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA` |
+| CCIP-BnM (USDC) | `0x88A2d74F47a237a62e7A51cdDa67270CE381555e` |
+
+---
+
+## Prerequisites
+
+Make sure `.env` contains:
+
+```dotenv
+RPC_URL_ARB=<arbitrum_sepolia_rpc>
+RPC_URL_BASE=<base_sepolia_rpc>
+PRIVATE_KEY=<deployer_private_key>
 ```
-CRE_ETH_PRIVATE_KEY=0000000000000000000000000000000000000000000000000000000000000001
-```
 
-## 3. Install dependencies
+---
 
-If `bun` is not already installed, see https://bun.com/docs/installation for installing in your environment.
+## Step 1 — Set Yield Rate Differential
+
+Set Base rate higher than Arbitrum to trigger rebalancing.
 
 ```bash
-cd <workflow-name> && bun install
+# Set Arbitrum MockAave rate to 8%
+cast send 0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7 \
+  "setRates(uint256,uint256)" \
+  80000000000000000 80000000000000000 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Set Base MockAave rate to 20%
+cast send 0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA \
+  "setRates(uint256,uint256)" \
+  200000000000000000 200000000000000000 \
+  --rpc-url $RPC_URL_BASE --private-key $PRIVATE_KEY
 ```
 
-Example: For a workflow directory named `workflow01` the command would be:
+Verify:
+```bash
+cast call 0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7 "getSupplyAPY()" --rpc-url $RPC_URL_ARB
+# expect: 0x011c37937e080000 (8%)
+
+cast call 0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA "getSupplyAPY()" --rpc-url $RPC_URL_BASE
+# expect: 0x02c68af0bb140000 (20%)
+```
+
+---
+
+## Step 2 — Deposit into VaultManager Arbitrum
+
+Mint CCIP-BnM and deposit into VaultManager so there are funds to rebalance.
 
 ```bash
-cd workflow01 && bun install
+# Mint CCIP-BnM (free faucet)
+cast send 0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D \
+  "drip(address)" <YOUR_WALLET> \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Approve VaultManager
+cast send 0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D \
+  "approve(address,uint256)" \
+  0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  1000000000000000000 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Deposit 1 CCIP-BnM
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "deposit(uint256)" 1000000000000000000 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
 ```
 
-## 4. Configure RPC endpoints
-
-For local simulation to interact with a chain, you must specify RPC endpoints for the chains you interact with in the `project.yaml` file. This is required for submitting transactions and reading blockchain state.
-
-Note: The following 7 chains are supported in local simulation (both testnet and mainnet variants):
-
-- Ethereum (`ethereum-testnet-sepolia`, `ethereum-mainnet`)
-- Base (`ethereum-testnet-sepolia-base-1`, `ethereum-mainnet-base-1`)
-- Avalanche (`avalanche-testnet-fuji`, `avalanche-mainnet`)
-- Polygon (`polygon-testnet-amoy`, `polygon-mainnet`)
-- BNB Chain (`binance-smart-chain-testnet`, `binance-smart-chain-mainnet`)
-- Arbitrum (`ethereum-testnet-sepolia-arbitrum-1`, `ethereum-mainnet-arbitrum-1`)
-- Optimism (`ethereum-testnet-sepolia-optimism-1`, `ethereum-mainnet-optimism-1`)
-
-Add your preferred RPCs under the `rpcs` section. For chain names, refer to https://github.com/smartcontractkit/chain-selectors/blob/main/selectors.yml
-
-## 5. Deploy contracts and prepare ABIs
-
-### 5a. Deploy contracts
-
-Deploy the BalanceReader, MessageEmitter, ReserveManager and SimpleERC20 contracts. You can either do this on a local chain or on a testnet using tools like cast/foundry.
-
-For a quick start, you can also use the pre-deployed contract addresses on Ethereum Sepolia—no action required on your part if you're just trying things out.
-
-### 5b. Prepare ABIs
-
-For each contract you would like to interact with, you need to provide the ABI `.ts` file so that TypeScript can provide type safety and autocomplete for the contract methods. The format of the ABI files is very similar to regular JSON format; you just need to export it as a variable and mark it `as const`. For example:
-
-```ts
-// IERC20.ts file
-export const IERC20Abi = {
-  // ... your ABI here ...
-} as const;
+Verify balance in MockAave:
+```bash
+cast call 0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7 \
+  "getUserSupplyBalance(address)" \
+  0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  --rpc-url $RPC_URL_ARB
 ```
 
-For a quick start, every contract used in this workflow is already provided in the `contracts` folder. You can use them as a reference.
+---
 
-## 6. Configure workflow
+## Step 3 — Run CRE Workflow Simulation
 
-Configure `config.json` for the workflow
-
-- `schedule` should be set to `"0 */1 * * * *"` for every 1 minute(s) or any other cron expression you prefer, note [CRON service quotas](https://docs.chain.link/cre/service-quotas)
-- `url` should be set to existing reserves HTTP endpoint API
-- `tokenAddress` should be the SimpleERC20 contract address
-- `porAddress` should be the ReserveManager contract address
-- `proxyAddress` should be the UpdateReservesProxySimplified contract address
-- `balanceReaderAddress` should be the BalanceReader contract address
-- `messageEmitterAddress` should be the MessageEmitter contract address
-- `chainSelectorName` should be human-readable chain name of selected chain (refer to https://github.com/smartcontractkit/chain-selectors/blob/main/selectors.yml)
-- `gasLimit` should be the gas limit of chain write
-
-The config is already populated with deployed contracts in template.
-
-Note: Make sure your `workflow.yaml` file is pointing to the config.json, example:
-
-```yaml
-staging-settings:
-  user-workflow:
-    workflow-name: "workflow01"
-  workflow-artifacts:
-    workflow-path: "./main.ts"
-    config-path: "./config.json"
-    secrets-path: ""
-```
-
-## 7. Simulate the workflow
-
-Run the command from <b>project root directory</b> and pass in the path to the workflow directory.
+CRE reads yield rates from both chains and sends reports to UseDiegoConsumer.
 
 ```bash
-cre workflow simulate <path-to-workflow-directory>
+cd use-diego-cre
+cre workflow simulate use-diego-workflow --target staging-settings --broadcast
 ```
 
-For a workflow directory named `workflow01` the exact command would be:
+Expected output:
+```
+ethereum-testnet-sepolia-arbitrum-1: 8%
+ethereum-testnet-sepolia-base-1: 20%
+chainsUpdated: 2
+status: success
+```
+
+> **Note:** CRE simulation forwarder does not propagate to VaultManager directly. Proceed to Step 4 to update yield data manually.
+
+---
+
+## Step 4 — Update Yield Data in VaultManager
+
+Because simulation forwarder does not call UseDiegoConsumer on-chain, update yield data manually.
 
 ```bash
-cre workflow simulate ./workflow01
+# Temporarily set creOperator to deployer wallet
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "setCreOperator(address)" <YOUR_WALLET> \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Update ARB rate on VaultManager ARB
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "updateYieldData(uint64,uint256)" \
+  3478487238524512106 80000000000000000 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Update BASE rate on VaultManager ARB
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "updateYieldData(uint64,uint256)" \
+  10344971235874465080 200000000000000000 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Restore creOperator to UseDiegoConsumer
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "setCreOperator(address)" \
+  0xCCedf582BD0c94c68761A4Ab1Ee5445aA7E29642 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
 ```
 
-After this you will get a set of options similar to:
+---
+
+## Step 5 — Verify checkUpkeep Returns True
+
+```bash
+cast call 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "checkUpkeep(bytes)" 0x --rpc-url $RPC_URL_ARB
+```
+
+First word of output must be `0x0000...0001` (true). If false, check:
+- Yield data timestamp not stale (within 2 hours) — repeat Step 3 and 4
+- Balance in MockAave > 0 — repeat Step 2
+- Cooldown not active — run `resetCooldown()` if needed
+
+```bash
+# Check cooldown remaining
+cast call 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "cooldownRemaining()" --rpc-url $RPC_URL_ARB
+
+# Reset cooldown if needed (owner only)
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "resetCooldown()" \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+```
+
+---
+
+## Step 6 — Trigger Rebalancing
+
+### Option A — Wait for Chainlink Automation (recommended)
+
+Automation is already registered and active. Once `checkUpkeep` returns true, Automation will call `performUpkeep` automatically within a few minutes.
+
+Monitor at: https://automation.chain.link/arbitrum-sepolia
+
+### Option B — Trigger Manually (for demo)
+
+```bash
+# Get performData from checkUpkeep output
+PERFORM_DATA=$(cast call 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "checkUpkeep(bytes)" 0x --rpc-url $RPC_URL_ARB)
+
+# Reset automation forwarder temporarily
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "setAutomationForwarder(address)" \
+  0x0000000000000000000000000000000000000000 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Trigger performUpkeep (replace PERFORM_DATA_BYTES with actual performData)
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "performUpkeep(bytes)" "<PERFORM_DATA_BYTES>" \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+
+# Restore automation forwarder
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "setAutomationForwarder(address)" \
+  0x53b86167c4658b77132c6481b91faB09C3af72C9 \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
+```
+
+---
+
+## Step 7 — Track CCIP Message
+
+After `performUpkeep` succeeds, get the messageId from the transaction logs and track it:
 
 ```
-🚀 Workflow simulation ready. Please select a trigger:
-1. cron-trigger@1.0.0 Trigger
-2. evm:ChainSelector:16015286601757825753@1.0.0 LogTrigger
-
-Enter your choice (1-2):
+https://ccip.chain.link/msg/<MESSAGE_ID>
 ```
 
-You can simulate each of the following triggers types as follows
+Status will go from `Inflight` → `Success` within a few minutes.
 
-### 7a. Simulating Cron Trigger Workflows
+---
 
-Select option 1, and the workflow should immediately execute.
+## Step 8 — Verify Funds Received on Base
 
-### 7b. Simulating Log Trigger Workflows
-
-Select option 2, and then two additional prompts will come up and you can pass in the example inputs:
-
-Transaction Hash: 0x9394cc015736e536da215c31e4f59486a8d85f4cfc3641e309bf00c34b2bf410
-Log Event Index: 0
-
-The output will look like:
-
+```bash
+cast call 0x5aAe96534Aa5f481A1B92eC8dD48f7A5423b13C4 \
+  "totalAssets()" --rpc-url $RPC_URL_BASE
 ```
-🔗 EVM Trigger Configuration:
-Please provide the transaction hash and event index for the EVM log event.
-Enter transaction hash (0x...): 0x9394cc015736e536da215c31e4f59486a8d85f4cfc3641e309bf00c34b2bf410
-Enter event index (0-based): 0
-Fetching transaction receipt for transaction 0x9394cc015736e536da215c31e4f59486a8d85f4cfc3641e309bf00c34b2bf410...
-Found log event at index 0: contract=0x1d598672486ecB50685Da5497390571Ac4E93FDc, topics=3
-Created EVM trigger log for transaction 0x9394cc015736e536da215c31e4f59486a8d85f4cfc3641e309bf00c34b2bf410, event 0
+
+Value should increase after CCIP message is finalized, confirming funds were bridged and supplied into MockAave on Base.
+
+---
+
+## Anomaly Detection Demo (Optional)
+
+To demonstrate the emergency pause feature, set a rate above 50% threshold:
+
+```bash
+# Set anomalous rate on Base (>50%)
+cast send 0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA \
+  "setRates(uint256,uint256)" \
+  600000000000000000 600000000000000000 \
+  --rpc-url $RPC_URL_BASE --private-key $PRIVATE_KEY
+
+# Run CRE simulation — it will detect anomaly and pause all vaults
+cre workflow simulate use-diego-workflow --target staging-settings --broadcast
+# Expected: status: paused, reason: anomaly_detected
+
+# Unpause (owner only)
+cast send 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 \
+  "emergencyUnpause()" \
+  --rpc-url $RPC_URL_ARB --private-key $PRIVATE_KEY
 ```
+
+---
+
+## Quick Reference — Key Commands
+
+```bash
+# Check yield rates
+cast call 0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7 "getSupplyAPY()" --rpc-url $RPC_URL_ARB
+cast call 0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA "getSupplyAPY()" --rpc-url $RPC_URL_BASE
+
+# Check stored yield data in VaultManager
+cast call 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 "getAllYieldData()" --rpc-url $RPC_URL_ARB
+
+# Check upkeep status
+cast call 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 "checkUpkeep(bytes)" 0x --rpc-url $RPC_URL_ARB
+
+# Check LINK balance in VaultManager
+cast call 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 "getLinkBalance()" --rpc-url $RPC_URL_ARB
+
+# Check cooldown remaining
+cast call 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66 "cooldownRemaining()" --rpc-url $RPC_URL_ARB
+
+# Check total assets on Base after rebalance
+cast call 0x5aAe96534Aa5f481A1B92eC8dD48f7A5423b13C4 "totalAssets()" --rpc-url $RPC_URL_BASE
+```
+
+---
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `checkUpkeep` returns false | Yield data stale (>2 hours) | Re-run Step 3 and 4 |
+| `checkUpkeep` returns false | Balance is 0 | Deposit more CCIP-BnM (Step 2) |
+| `CooldownActive` error | 24h cooldown not expired | Run `resetCooldown()` |
+| `Unauthorized` on performUpkeep | automationForwarder is set | Reset to zero first |
+| `UnsupportedToken` | Wrong token address | Use CCIP-BnM not custom ERC20 |
+| `YieldDeltaTooLow` | Delta < 2% threshold | Increase rate differential (Step 1) |
+| CRE tx success but VaultManager not updated | Simulation forwarder limitation | Update yield data manually (Step 4) |

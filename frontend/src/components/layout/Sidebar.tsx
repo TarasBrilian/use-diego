@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { LayoutDashboard, Droplets, History, Settings, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Droplets, History, Settings, ExternalLink, Wallet } from 'lucide-react';
 import Image from 'next/image';
 
 function cn(...inputs: ClassValue[]) {
@@ -12,9 +12,10 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const navItems = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { name: 'Dashboard', href: '/app', icon: LayoutDashboard },
     { name: 'Faucet', href: '/faucet', icon: Droplets },
-    { name: 'Rebalance History', href: '#history', icon: History },
+    { name: 'Rebalance History', href: '/history', icon: History },
+    { name: 'Portfolio', href: '/portfolio', icon: Wallet },
 ];
 
 export const Sidebar = () => {
@@ -23,12 +24,12 @@ export const Sidebar = () => {
     return (
         <aside className="fixed left-0 top-0 h-screen w-[240px] bg-bg-surface border-r border-border flex flex-col z-50">
             <div className="p-6">
-                <div className="flex items-center gap-2 mb-8">
+                <Link href="/" className="flex items-center gap-2 mb-8">
                     <div className="w-8 h-8 rounded-lg bg-accent-teal flex items-center justify-center text-bg-base font-bold text-xl">
                         <Image src="/assets/logo-use-diego1.png" alt="Logo" width={32} height={32} />
                     </div>
                     <span className="text-xl font-bold tracking-tight text-primary">UseDiego</span>
-                </div>
+                </Link>
 
                 <nav className="space-y-1">
                     {navItems.map((item) => {
@@ -69,6 +70,6 @@ export const Sidebar = () => {
                     </Link>
                 </div>
             </div>
-        </aside>
+        </aside >
     );
 };
