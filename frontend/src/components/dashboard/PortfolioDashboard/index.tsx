@@ -4,6 +4,7 @@ import { useVaultManager } from '@/hooks/useVaultManager';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
 import { useYieldData } from '@/hooks/useYieldData';
 import { useActivityLogs } from '@/hooks/useActivityLogs';
+import { useAccount } from 'wagmi';
 import { formatAPY } from '@/lib/format';
 import { formatUnits } from 'viem';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
@@ -21,6 +22,7 @@ function formatCCIPAmount(raw: bigint | number): string {
 }
 
 export const PortfolioDashboard = () => {
+    const { address } = useAccount();
     // 1. Fetch User Data
     const {
         userBalance: arbVal,
@@ -41,7 +43,7 @@ export const PortfolioDashboard = () => {
     const { arbitrum: arbYield, base: baseYield } = useYieldData();
 
     // 4. Fetch All Activity
-    const { logs, isLoading: logsLoading } = useActivityLogs();
+    const { logs, isLoading: logsLoading } = useActivityLogs(address);
     const rebalances = logs.filter(l => l.type === 'rebalance');
 
     // Aggregate Calculations
@@ -347,7 +349,7 @@ export const PortfolioDashboard = () => {
                                                 rel="noopener noreferrer"
                                                 className="text-accent-teal hover:text-white transition-colors flex items-center gap-1"
                                             >
-                                                {log.tx} ↗
+                                                {log.tx.slice(0, 6)}...{log.tx.slice(-4)} ↗
                                             </a>
                                         </td>
                                         <td className="px-6 py-4">

@@ -18,6 +18,7 @@ export interface ActivityLogItem {
 }
 
 const DEPOSITED_EVENT = parseAbiItem("event Deposited(address indexed user, uint256 amount, uint256 sharesIssued)");
+const WITHDRAWN_EVENT = parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 sharesBurned)");
 const REBALANCE_TRIGGERED_EVENT = parseAbiItem("event RebalanceTriggered(uint64 indexed targetChain, uint256 amount, bytes32 messageId)");
 const YIELD_DATA_UPDATED_EVENT = parseAbiItem("event YieldDataUpdated(uint64 indexed chainSelector, uint256 supplyRate, uint256 timestamp)");
 
@@ -37,7 +38,7 @@ function getChainName(selector: string) {
     return "Unknown Chain";
 }
 
-export function useActivityLogs() {
+export function useActivityLogs(userAddress?: string) {
     const [logs, setLogs] = useState<ActivityLogItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -48,40 +49,68 @@ export function useActivityLogs() {
         async function fetchLogs() {
             if (!arbClient || !baseClient) return;
 
+            setIsLoading(true);
             try {
+                // Determine block ranges (limiting to last 50k blocks for performance/RPC limits)
+                const [arbBlock, baseBlock] = await Promise.all([
+                    arbClient.getBlockNumber(),
+                    baseClient.getBlockNumber(),
+                ]);
+
+                const LOOKBACK = BigInt(50_000);
+                const arbFrom = arbBlock > LOOKBACK ? arbBlock - LOOKBACK : BigInt(0);
+                const baseFrom = baseBlock > LOOKBACK ? baseBlock - LOOKBACK : BigInt(0);
+
+                const filterArgs = userAddress ? { user: userAddress as Address } : undefined;
+
                 const [arbLogs, baseLogs] = await Promise.all([
                     Promise.all([
                         arbClient.getLogs({
                             address: chains.arbitrumSepolia.vaultManager as Address,
                             event: DEPOSITED_EVENT,
-                            fromBlock: BigInt(0), // In production, use a more sensible block
+                            args: filterArgs,
+                            fromBlock: arbFrom,
+                        }),
+                        arbClient.getLogs({
+                            address: chains.arbitrumSepolia.vaultManager as Address,
+                            event: WITHDRAWN_EVENT,
+                            args: filterArgs,
+                            fromBlock: arbFrom,
                         }),
                         arbClient.getLogs({
                             address: chains.arbitrumSepolia.vaultManager as Address,
                             event: REBALANCE_TRIGGERED_EVENT,
-                            fromBlock: BigInt(0),
+                            // RebalanceTriggered doesn't have a user index, so we fetch all
+                            fromBlock: arbFrom,
                         }),
                         arbClient.getLogs({
                             address: chains.arbitrumSepolia.vaultManager as Address,
                             event: YIELD_DATA_UPDATED_EVENT,
-                            fromBlock: BigInt(0),
+                            fromBlock: arbFrom,
                         }),
                     ]),
                     Promise.all([
                         baseClient.getLogs({
                             address: chains.baseSepolia.vaultManager as Address,
                             event: DEPOSITED_EVENT,
-                            fromBlock: BigInt(0),
+                            args: filterArgs,
+                            fromBlock: baseFrom,
+                        }),
+                        baseClient.getLogs({
+                            address: chains.baseSepolia.vaultManager as Address,
+                            event: WITHDRAWN_EVENT,
+                            args: filterArgs,
+                            fromBlock: baseFrom,
                         }),
                         baseClient.getLogs({
                             address: chains.baseSepolia.vaultManager as Address,
                             event: REBALANCE_TRIGGERED_EVENT,
-                            fromBlock: BigInt(0),
+                            fromBlock: baseFrom,
                         }),
                         baseClient.getLogs({
                             address: chains.baseSepolia.vaultManager as Address,
                             event: YIELD_DATA_UPDATED_EVENT,
-                            fromBlock: BigInt(0),
+                            fromBlock: baseFrom,
                         }),
                     ]),
                 ]);
@@ -91,8 +120,8 @@ export function useActivityLogs() {
                     ...baseLogs.flat().map(log => ({ ...log, chain: "Base" })),
                 ];
 
-                // Fetch timestamps for all logs
-                // For simplicity, we'll fetch them. In an optimized app, you'd cache or use a subgraph.
+                // Sort by block number DESC before fetching block timestamps to minimize requests if needed
+                // But we need timestamps for the UI sorting anyway
                 const logsWithTimestamps = await Promise.all(
                     allEvents.map(async (event) => {
                         const block = await (event.chain === "Arbitrum" ? arbClient : baseClient).getBlock({
@@ -108,11 +137,15 @@ export function useActivityLogs() {
                             type = "deposit";
                             const amount = formatUnits((event.args as any).amount, 6);
                             message = `New Deposit: ${amount} USDC received on ${event.chain}`;
+                        } else if (event.eventName === "Withdrawn") {
+                            type = "deposit"; // Using same type for simplicity in UI
+                            const amount = formatUnits((event.args as any).amount, 6);
+                            message = `Withdrawal: ${amount} USDC from ${event.chain}`;
                         } else if (event.eventName === "RebalanceTriggered") {
                             type = "rebalance";
-                            const amount = formatUnits((event.args as any).amount, 6);
+                            const amount = formatUnits((event.args as any).amount, 18); // BnM is 18 decimals
                             const targetChain = getChainName((event.args as any).targetChain.toString());
-                            message = `CCIP Rebalance: ${amount} USDC moved from ${event.chain} to ${targetChain}`;
+                            message = `CCIP Rebalance: ${amount} moved from ${event.chain} to ${targetChain}`;
                         } else if (event.eventName === "YieldDataUpdated") {
                             type = "oracle";
                             const supplyRate = (Number((event.args as any).supplyRate) / 1e16).toFixed(2);
@@ -127,7 +160,7 @@ export function useActivityLogs() {
                             timestamp,
                             type,
                             message,
-                            tx: `${event.transactionHash.slice(0, 6)}...${event.transactionHash.slice(-4)}`,
+                            tx: event.transactionHash,
                             status,
                             chain: event.chain,
                         } as ActivityLogItem;
@@ -143,7 +176,7 @@ export function useActivityLogs() {
         }
 
         fetchLogs();
-    }, [arbClient, baseClient]);
+    }, [arbClient, baseClient, userAddress]);
 
     return { logs, isLoading };
 }

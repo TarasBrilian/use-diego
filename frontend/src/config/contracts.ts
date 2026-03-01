@@ -217,7 +217,7 @@ export const chains = {
         id: 84532,
         name: "Base Sepolia",
         selector: "10344971235874465080", // Verified CCIP selector
-        vaultManager: "0x37c78afb59a2d66811565ca2431bfa395ed7666b",
+        vaultManager: "0x5aAe96534Aa5f481A1B92eC8dD48f7A5423b13C4",
         yieldOracle: "0x81E6d6CE1a3840d7F98f23aACC30ad9Fc5D5f607",
         usdc: "0x7f8033ff9992730f133b75a571E6025ed34a639A",
         forwarder: "0x82300bd7c3958625581cc2F77bC6464dcEcDF3e5",

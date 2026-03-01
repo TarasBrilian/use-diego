@@ -51,10 +51,16 @@ graph TD
 
 Unlike basic yield aggregators that chase the highest gross APY, Use Diego calculates the **Net Yield** to ensure rebalancing is actually profitable.
 
-$$ \text{Net Yield} = \text{Gross APY} - (\text{Bridge Cost} + \text{Gas Fees} + \text{Slippage}) $$
+$$
+\text{Net Yield} = \text{Gross APY} - (\text{Bridge Cost} + \text{Gas Fees} + \text{Slippage})
+$$
 
 Rebalancing only occurs if:
-$$ \Delta\text{Yield} \times \text{Capital} > \text{Total Rebalance Costs} $$
+
+$$
+\Delta\text{Yield} \times \text{Capital} > \text{Total Rebalance Costs}
+$$
+
 
 ---
 
