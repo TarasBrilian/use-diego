@@ -8,10 +8,10 @@ export const formatAPY = (raw: bigint): string =>
 export const formatAssets = (raw: bigint): string =>
     `${parseFloat(formatUnits(raw, 18)).toFixed(4)} CCIP-BnM`
 
-// Delta: show with sign and color class
+// Delta: show absolute spread
 export const formatDelta = (a: bigint, b: bigint): string => {
-    const delta = (Number(b) - Number(a)) / 1e16
-    return `${delta > 0 ? '+' : ''}${delta.toFixed(2)}%`
+    const delta = Math.abs(Number(b) - Number(a)) / 1e16
+    return `${delta.toFixed(2)}%`
 }
 
 // Timestamp: 1772290557 → "3 min ago"
