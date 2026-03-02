@@ -78,10 +78,10 @@ export default function FaucetPage() {
                                 <span className="text-[10px] font-mono font-bold text-accent-teal uppercase tracking-widest">Testnet Faucet</span>
                             </div>
                             <h1 className="text-4xl font-bold tracking-tight text-primary mb-4">
-                                CCIP-BnM <span className="text-accent-teal">Faucet</span>
+                                USDC BnM <span className="text-accent-teal">Faucet</span>
                             </h1>
                             <p className="text-text-secondary font-mono text-sm max-w-lg leading-relaxed">
-                                Get CCIP-BnM test tokens to interact with CrossYield vaults on Arbitrum and Base Sepolia.
+                                Get USDC BnM test tokens to interact with CrossYield vaults on Arbitrum and Base Sepolia.
                             </p>
                         </div>
 
@@ -104,7 +104,7 @@ export default function FaucetPage() {
                                             <span className="text-4xl font-mono font-bold text-emerald-400">
                                                 {balance !== undefined ? Number(formatUnits(balance as bigint, 18)).toLocaleString() : "0.00"}
                                             </span>
-                                            <span className="text-xs font-mono text-text-muted uppercase">CCIP-BnM</span>
+                                            <span className="text-xs font-mono text-text-muted uppercase">USDC BnM</span>
                                         </div>
                                     </div>
 

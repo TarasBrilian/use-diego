@@ -67,12 +67,12 @@ export function Hero() {
                         Launch App
                         <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
                     </Link>
-                    <a
-                        href="#how-it-works"
+                    <Link
+                        href="https://use-diego-docs.vercel.app/docs/introduction" target="_blank"
                         className="px-8 py-4 rounded-xl bg-white/[0.03] border border-white/[0.08] text-primary font-medium hover:bg-white/[0.08] transition-all hover:-translate-y-1 w-full sm:w-auto backdrop-blur-md"
                     >
                         Explore Architecture
-                    </a>
+                    </Link>
                 </div>
             </motion.div>
         </section>

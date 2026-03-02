@@ -4,9 +4,9 @@ import { formatUnits } from 'viem'
 export const formatAPY = (raw: bigint): string =>
     `${(Number(raw) / 1e16).toFixed(2)}%`
 
-// Assets: 1000000000000000000n → "1.0000 CCIP-BnM"
+// Assets: 1000000000000000000n → "1.0000 USDC BnM"
 export const formatAssets = (raw: bigint): string =>
-    `${parseFloat(formatUnits(raw, 18)).toFixed(4)} CCIP-BnM`
+    `${parseFloat(formatUnits(raw, 18)).toFixed(4)} USDC BnM`
 
 // Delta: show absolute spread
 export const formatDelta = (a: bigint, b: bigint): string => {

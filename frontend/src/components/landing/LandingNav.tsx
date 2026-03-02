@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 
 export function LandingNav() {
     return (
@@ -14,7 +15,7 @@ export function LandingNav() {
             <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-teal/20 to-transparent border border-accent-teal/30 flex items-center justify-center shadow-[0_0_15px_rgba(0,229,195,0.15)]">
-                        <span className="text-accent-teal font-bold font-mono text-sm leading-none pt-[1px]">UD</span>
+                        <Image src="/assets/logo-use-diego1.png" alt="Logo" width={24} height={24} />
                     </div>
                     <span className="text-primary font-medium tracking-wide">Use Diego</span>
                 </div>

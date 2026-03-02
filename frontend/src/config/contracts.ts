@@ -209,7 +209,7 @@ export const chains = {
         selector: "3478487238524512106", // Verified CCIP selector
         vaultManager: "0xa1de025b706687b9a4ec40a3958aa5dc60bf1b66",
         yieldOracle: "0xAF1330E0AC47D86DAe4c512FE7D744762eac448c",
-        usdc: "0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D", // CCIP-BnM
+        usdc: "0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D", // USDC BnM
         forwarder: "0x53b86167c4658b77132c6481b91faB09C3af72C9",
         consumer: "0xccedf582bd0c94c68761a4ab1ee5445aa7e29642",
     },

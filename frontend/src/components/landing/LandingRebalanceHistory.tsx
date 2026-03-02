@@ -33,7 +33,7 @@ interface RebalanceEvent {
 
 function formatAmount(raw: bigint): string {
     const val = parseFloat(formatUnits(raw, 18));
-    return `${val.toFixed(4)} CCIP-BnM`;
+    return `${val.toFixed(4)} USDC BnM`;
 }
 
 function formatAge(timestamp: number): string {

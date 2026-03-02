@@ -1,4 +1,5 @@
 "use client";
+import { useMemo } from 'react';
 
 import { useVaultManager } from '@/hooks/useVaultManager';
 import { usePortfolioData } from '@/hooks/usePortfolioData';
@@ -28,12 +29,14 @@ export const PortfolioDashboard = () => {
         userBalance: arbVal,
         userShares: arbShares,
         totalAssets: arbTvl,
+        isLoading: arbLoading,
     } = useVaultManager('arbitrum');
 
     const {
         userBalance: baseVal,
         userShares: baseShares,
         totalAssets: baseTvl,
+        isLoading: baseLoading,
     } = useVaultManager('base');
 
     // 2. Fetch Net Deposits
@@ -45,6 +48,8 @@ export const PortfolioDashboard = () => {
     // 4. Fetch All Activity
     const { logs, isLoading: logsLoading } = useActivityLogs(address);
     const rebalances = logs.filter(l => l.type === 'rebalance');
+
+    const isBuffering = arbLoading || baseLoading || netLoading;
 
     // Aggregate Calculations
     const arbBalance = arbVal || 0n;
@@ -72,20 +77,19 @@ export const PortfolioDashboard = () => {
     }
 
     // Chart Data Generation (Mocked for visual, real data would need historical TVL indexing)
-    const generateChartData = () => {
+    const chartData = useMemo(() => {
         const data = [];
-        let baseValue = 23.0;
+        let curValue = 23.0;
         for (let i = 0; i < 7; i++) {
-            baseValue += Math.random() * 0.2;
+            curValue += (i * 0.1) + 0.1; // Stable progression instead of Math.random()
             data.push({
                 name: `Day ${i + 1}`,
-                value: baseValue,
+                value: curValue,
                 isRebalance: i === 2 || i === 5,
             });
         }
         return data;
-    };
-    const chartData = generateChartData();
+    }, []);
 
     const StatBox = ({ title, value, unit, subtext, highlightColor = 'text-accent-teal' }: any) => (
         <div className="bg-[#12141A] border border-[#1E222B] rounded-lg p-6 flex flex-col justify-between h-[120px]">
@@ -116,29 +120,29 @@ export const PortfolioDashboard = () => {
                     <div className="text-[10px] text-text-muted font-mono uppercase tracking-widest">Total Value</div>
                     <div>
                         <div className="text-3xl font-mono font-bold text-accent-teal">
-                            {formatCCIPAmount(totalCurrentValue)}
+                            {isBuffering ? "---.----" : formatCCIPAmount(totalCurrentValue)}
                         </div>
-                        <div className="text-[10px] text-text-muted mt-1 font-mono">CCIP-BnM across 2 chains</div>
+                        <div className="text-[10px] text-text-muted mt-1 font-mono">USDC BnM across 2 chains</div>
                     </div>
                 </div>
 
                 <StatBox
                     title="Yield Earned"
-                    value={`+${formatCCIPAmount(yieldEarned)}`}
+                    value={isBuffering ? "---.----" : `+${formatCCIPAmount(yieldEarned)}`}
                     highlightColor="text-emerald-400"
                     subtext="since deposit"
                 />
 
                 <StatBox
                     title="Avg APY"
-                    value={formatAPY(BigInt(Math.floor(weightedApy)))}
+                    value={isBuffering ? "---" : formatAPY(BigInt(Math.floor(weightedApy)))}
                     highlightColor="text-orange-400"
                     subtext="weighted across positions"
                 />
 
                 <StatBox
                     title="Rebalances"
-                    value={rebalances.length.toString()}
+                    value={logsLoading ? "..." : rebalances.length.toString()}
                     highlightColor="text-white"
                     subtext="total cross-chain moves"
                 />
@@ -227,15 +231,15 @@ export const PortfolioDashboard = () => {
                     <div className="space-y-4 font-mono text-sm">
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Deposited</span>
-                            <span className="text-white">{formatCCIPAmount(netDeposits.arbitrum)} CCIP-BnM</span>
+                            <span className="text-white">{formatCCIPAmount(netDeposits.arbitrum)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Current Value</span>
-                            <span className="text-accent-teal">{formatCCIPAmount(arbBalance)} CCIP-BnM</span>
+                            <span className="text-accent-teal">{formatCCIPAmount(arbBalance)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Yield Earned</span>
-                            <span className="text-emerald-400">+{formatCCIPAmount(arbYieldEarned)} CCIP-BnM</span>
+                            <span className="text-emerald-400">+{formatCCIPAmount(arbYieldEarned)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Share Balance</span>
@@ -243,7 +247,7 @@ export const PortfolioDashboard = () => {
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Vault TVL</span>
-                            <span className="text-text-secondary">{formatCCIPAmount(arbTvl || 0n)} CCIP-BnM</span>
+                            <span className="text-text-secondary">{formatCCIPAmount(arbTvl || 0n)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-text-muted">Your Share</span>
@@ -274,15 +278,15 @@ export const PortfolioDashboard = () => {
                     <div className="space-y-4 font-mono text-sm">
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Deposited</span>
-                            <span className="text-white">{formatCCIPAmount(netDeposits.base)} CCIP-BnM</span>
+                            <span className="text-white">{formatCCIPAmount(netDeposits.base)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Current Value</span>
-                            <span className="text-accent-teal">{formatCCIPAmount(baseBalance)} CCIP-BnM</span>
+                            <span className="text-accent-teal">{formatCCIPAmount(baseBalance)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Yield Earned</span>
-                            <span className="text-emerald-400">+{formatCCIPAmount(baseYieldEarned)} CCIP-BnM</span>
+                            <span className="text-emerald-400">+{formatCCIPAmount(baseYieldEarned)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Share Balance</span>
@@ -290,7 +294,7 @@ export const PortfolioDashboard = () => {
                         </div>
                         <div className="flex justify-between border-b border-[#1E222B] pb-3">
                             <span className="text-text-muted">Vault TVL</span>
-                            <span className="text-text-secondary">{formatCCIPAmount(baseTvl || 0n)} CCIP-BnM</span>
+                            <span className="text-text-secondary">{formatCCIPAmount(baseTvl || 0n)} USDC BnM</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-text-muted">Your Share</span>
@@ -340,7 +344,7 @@ export const PortfolioDashboard = () => {
                                         </td>
                                         <td className="px-6 py-4 text-accent-teal">
                                             {/* Extract amount from message like "CCIP Rebalance: 10.50 USDC moved..." */}
-                                            {log.message.split('Rebalance: ')[1]?.split(' ')[0] || '0.00'} CCIP-BnM
+                                            {log.message.split('Rebalance: ')[1]?.split(' ')[0] || '0.00'} USDC BnM
                                         </td>
                                         <td className="px-6 py-4">
                                             <a

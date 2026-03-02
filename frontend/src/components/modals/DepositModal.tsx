@@ -164,7 +164,7 @@ export const DepositModal = ({ isOpen, onClose, chain }: DepositModalProps) => {
                                         </div>
                                         <div className="flex justify-between text-[10px] text-text-muted font-mono uppercase">
                                             <span>Asset</span>
-                                            <span className="text-primary truncate max-w-[120px]">CCIP-BnM</span>
+                                            <span className="text-primary truncate max-w-[120px]">USDC BnM</span>
                                         </div>
                                     </div>
 
