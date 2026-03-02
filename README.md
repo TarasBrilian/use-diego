@@ -81,6 +81,40 @@ When a significant yield opportunity is detected on another chain:
 *   **Explicit Triggers**: Only authorized Chainlink Forwarders can execute rebalancing logic.
 *   **Layered Trust**: While the `YieldOracle` currently relies on CRE-signed data, the execution path remains constrained by programmed logic.
 
+## 📍 Deployed Addresses
+
+### Arbitrum (Sepolia)
+- **VaultManager**: `0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66`
+- **Forwarder**: `0x53b86167c4658b77132c6481b91faB09C3af72C9`
+- **USDC**: `0xA8C0c11bf64AF62CDCA6f93D3769B88BdD7cb93D`
+- **MockAaveV3**: `0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7`
+
+### Base (Sepolia)
+- **VaultManager**: `0x5aAe96534Aa5f481A1B92eC8dD48f7A5423b13C4`
+- **Forwarder**: `0xdCD67F7b6b96f115fe1515bEd953d4031692685E`
+- **USDC**: `0x88A2d74F47a237a62e7A51cdDa67270CE381555e`
+- **MockAaveV3**: `0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA`
+
+<details>
+<summary>View Detailed Deployment Logs</summary>
+
+```bash
+# == Logs ARB ==
+#   MockAAVEV3 deployed at: 0xe8b3d9eC032Cd7fbf3d0f6975384F8FD5f49C0d7
+#   VaultManager deployed at: 0xA1DE025b706687b9A4ec40A3958aa5dC60BF1B66
+#   Forwarder deployed at: 0xcc61F37f20395755A01F37CE6320523a99746834
+#   LinkToken address at: 0xb1D4538B4571d411F07960EF2838Ce337FE1E80E
+#   Consumer address at: 0xCCedf582BD0c94c68761A4Ab1Ee5445aA7E29642
+
+# == Logs BASE ==
+#   MockAAVEV3 deployed at: 0xF77216d1f04ADB76c633eb22F2686cF90aC6b0cA
+#   VaultManager deployed at: 0x5aAe96534Aa5f481A1B92eC8dD48f7A5423b13C4
+#   Forwarder deployed at: 0x712e14843DD031cB47B203470E0942E5dcaAA05b
+#   LinkToken address at: 0xE4aB69C077896252FAFBD49EFD26B5D171A32410
+#   Consumer address at: 0xe3521D9d8b0CF6de832bc23e3ED41b919Ec31647
+```
+</details>
+
 ---
 
 ## 🚀 Tech Stack
