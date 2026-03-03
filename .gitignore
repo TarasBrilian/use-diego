@@ -22,3 +22,7 @@ Thumbs.db
 **/smart-contract/lib/
 smart-contract/foundry.lock
 smart-contract/.gas-report
+
+# Indexer
+**/use-diego-indexer/.ponder/
+**/use-diego-indexer/generated/
