@@ -135,8 +135,13 @@ const updateYieldDataOnChain = (
 			)
 
 			const rawReport = encodeAbiParameters(
-				parseAbiParameters('uint64 chainSelector, uint256 supplyRate'),
-				[yieldInfo.chainSelector, yieldInfo.supplyRate]
+				[{
+					type: 'tuple', components: [
+						{ name: 'chainSelector', type: 'uint64' },
+						{ name: 'supplyRate', type: 'uint256' },
+					]
+				}],
+				[{ chainSelector: yieldInfo.chainSelector, supplyRate: yieldInfo.supplyRate }]
 			)
 
 			const reportResponse = runtime

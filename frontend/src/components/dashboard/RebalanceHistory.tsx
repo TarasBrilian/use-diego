@@ -3,6 +3,7 @@
 import { formatUnits } from 'viem';
 import { ExternalLink, Hash, History as HistoryIcon, ArrowRight, Loader2 } from 'lucide-react';
 import { useCCIPLogs } from '@/hooks/useCCIPLogs';
+import { useAccount } from 'wagmi';
 
 const EXPLORER_TX_URL: Record<string, string> = {
     'Arbitrum': 'https://sepolia.arbiscan.io/tx',
@@ -24,7 +25,8 @@ function formatAge(timestamp: number): string {
 }
 
 export const RebalanceHistory = () => {
-    const { logs, isLoading } = useCCIPLogs(10);
+    const { address } = useAccount();
+    const { logs, isLoading } = useCCIPLogs(10, address);
 
     return (
         <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">

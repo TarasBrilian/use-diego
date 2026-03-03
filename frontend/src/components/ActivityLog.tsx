@@ -2,9 +2,11 @@
 
 import { Terminal, CheckCircle2, ArrowRightLeft, Zap, Loader2 } from "lucide-react";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { useAccount } from "wagmi";
 
 export function ActivityLog() {
-    const { logs, isLoading } = useActivityLogs();
+    const { address } = useAccount();
+    const { logs, isLoading } = useActivityLogs(address);
 
     return (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">

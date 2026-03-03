@@ -6,9 +6,11 @@ import { useCCIPLogs, type CCIPLogEntry } from '@/hooks/useCCIPLogs';
 import { formatCooldown } from '@/lib/format';
 import { DataRow } from '@/components/ui/DataRow';
 import { Zap, Timer } from 'lucide-react';
+import { useAccount } from 'wagmi';
 import { decodeAbiParameters } from 'viem';
 
 export const AutomationStatus = () => {
+    const { address } = useAccount();
     const { needsUpkeep, performData } = useCheckUpkeep();
     const { cooldown } = useVaultManager('arbitrum');
     const {
@@ -18,7 +20,7 @@ export const AutomationStatus = () => {
         setPage,
         hasNextPage,
         hasPrevPage
-    } = useCCIPLogs(4);
+    } = useCCIPLogs(4, address);
 
     const decodePerformData = () => {
         if (!performData || performData === '0x') return null;

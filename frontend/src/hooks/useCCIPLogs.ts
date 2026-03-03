@@ -14,7 +14,7 @@ export interface CCIPLogEntry {
     ccipUrl?: string;
 }
 
-export function useCCIPLogs(pageSize: number = 4) {
+export function useCCIPLogs(pageSize: number = 4, userAddress?: string) {
     const [allLogs, setAllLogs] = useState<CCIPLogEntry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [page, setPage] = useState(0);
@@ -32,6 +32,7 @@ export function useCCIPLogs(pageSize: number = 4) {
             try {
                 const data: any = await ponderClient.request(GET_CCIP_LOGS, {
                     limit: pageSize * 5,
+                    user: userAddress?.toLowerCase() || undefined,
                 });
 
                 console.log("CCIP Logs Raw Data:", data);

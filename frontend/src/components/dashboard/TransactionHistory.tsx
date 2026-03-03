@@ -22,8 +22,8 @@ interface TransactionEvent {
 }
 
 function formatAmount(raw: bigint): string {
-    const val = parseFloat(formatUnits(raw, 6)); // USDC is 6 decimals
-    return `${val.toFixed(2)} USDC`;
+    const val = parseFloat(formatUnits(raw, 18)); // USDC BnM is 18 decimals
+    return `${val.toFixed(4)} USDC BnM`;
 }
 
 function formatAge(timestamp: number): string {
@@ -54,7 +54,7 @@ export const TransactionHistory = () => {
                 });
 
                 const formatted: TransactionEvent[] = [
-                    ...data.deposit_events.items.map((item: any) => ({
+                    ...data.depositEvents.items.map((item: any) => ({
                         timestamp: Number(item.timestamp),
                         amount: BigInt(item.amount),
                         type: 'Deposit' as const,
@@ -62,7 +62,7 @@ export const TransactionHistory = () => {
                         txHash: item.txHash,
                         key: item.id,
                     })),
-                    ...data.withdraw_events.items.map((item: any) => ({
+                    ...data.withdrawEvents.items.map((item: any) => ({
                         timestamp: Number(item.timestamp),
                         amount: BigInt(item.amount),
                         type: 'Withdraw' as const,

@@ -99,7 +99,7 @@ export const useVaultManager = (chainKey: 'arbitrum' | 'base') => {
     });
 
     return {
-        totalAssets: indexedAssets ?? (totalAssets.data as bigint | undefined),
+        totalAssets: (indexedAssets && indexedAssets > 0n) ? indexedAssets : (totalAssets.data as bigint | undefined),
         userBalance: userBalance.data as bigint | undefined,
         userShares: userShares.data as bigint | undefined,
         linkBalance: linkBalance.data as bigint | undefined,

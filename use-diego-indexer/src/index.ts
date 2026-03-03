@@ -62,6 +62,18 @@ ponder.on("VaultManagerArb:Deposited", async ({ event, context }) => {
         blockNumber: event.block.number,
         timestamp: event.block.timestamp,
     })
+
+    await context.db.insert(vaultState).values({
+        id: "ARB",
+        chain: "ARB",
+        totalAssets: amount,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }).onConflictDoUpdate((prev) => ({
+        totalAssets: prev.totalAssets + amount,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }))
 })
 
 ponder.on("VaultManagerArb:Withdrawn", async ({ event, context }) => {
@@ -77,6 +89,18 @@ ponder.on("VaultManagerArb:Withdrawn", async ({ event, context }) => {
         blockNumber: event.block.number,
         timestamp: event.block.timestamp,
     })
+
+    await context.db.insert(vaultState).values({
+        id: "ARB",
+        chain: "ARB",
+        totalAssets: 0n,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }).onConflictDoUpdate((prev) => ({
+        totalAssets: prev.totalAssets - amount,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }))
 })
 
 ponder.on("VaultManagerArb:YieldDataUpdated", async ({ event, context }) => {
@@ -92,19 +116,16 @@ ponder.on("VaultManagerArb:YieldDataUpdated", async ({ event, context }) => {
         txHash: event.transaction.hash,
     })
 
-    await context.db
-        .insert(vaultState)
-        .values({
-            id: "ARB",
-            chain: "ARB",
-            totalAssets: 0n,
-            updatedAt: event.block.timestamp,
-            blockNumber: event.block.number,
-        })
-        .onConflictDoUpdate({
-            updatedAt: event.block.timestamp,
-            blockNumber: event.block.number,
-        })
+    await context.db.insert(vaultState).values({
+        id: "ARB",
+        chain: "ARB",
+        totalAssets: 0n,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }).onConflictDoUpdate({
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    })
 })
 
 ponder.on("VaultManagerBase:RebalanceTriggered", async ({ event, context }) => {
@@ -152,6 +173,18 @@ ponder.on("VaultManagerBase:Deposited", async ({ event, context }) => {
         blockNumber: event.block.number,
         timestamp: event.block.timestamp,
     })
+
+    await context.db.insert(vaultState).values({
+        id: "BASE",
+        chain: "BASE",
+        totalAssets: amount,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }).onConflictDoUpdate((prev) => ({
+        totalAssets: prev.totalAssets + amount,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }))
 })
 
 ponder.on("VaultManagerBase:Withdrawn", async ({ event, context }) => {
@@ -167,6 +200,18 @@ ponder.on("VaultManagerBase:Withdrawn", async ({ event, context }) => {
         blockNumber: event.block.number,
         timestamp: event.block.timestamp,
     })
+
+    await context.db.insert(vaultState).values({
+        id: "BASE",
+        chain: "BASE",
+        totalAssets: 0n,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }).onConflictDoUpdate((prev) => ({
+        totalAssets: prev.totalAssets - amount,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }))
 })
 
 ponder.on("VaultManagerBase:YieldDataUpdated", async ({ event, context }) => {
@@ -180,5 +225,16 @@ ponder.on("VaultManagerBase:YieldDataUpdated", async ({ event, context }) => {
         timestamp,
         blockNumber: event.block.number,
         txHash: event.transaction.hash,
+    })
+
+    await context.db.insert(vaultState).values({
+        id: "BASE",
+        chain: "BASE",
+        totalAssets: 0n,
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
+    }).onConflictDoUpdate({
+        updatedAt: event.block.timestamp,
+        blockNumber: event.block.number,
     })
 })
