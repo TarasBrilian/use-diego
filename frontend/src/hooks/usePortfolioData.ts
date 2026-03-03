@@ -31,14 +31,14 @@ export function usePortfolioData() {
                 let arbNet = 0n;
                 let baseNet = 0n;
 
-                data.deposit_events.items.forEach((item: any) => {
-                    if (item.chain === 'Arbitrum') arbNet += BigInt(item.amount);
-                    if (item.chain === 'Base') baseNet += BigInt(item.amount);
+                data.depositEvents.items.forEach((item: any) => {
+                    if (item.chain === 'ARB') arbNet += BigInt(item.amount);
+                    if (item.chain === 'BASE') baseNet += BigInt(item.amount);
                 });
 
-                data.withdraw_events.items.forEach((item: any) => {
-                    if (item.chain === 'Arbitrum') arbNet -= BigInt(item.amount);
-                    if (item.chain === 'Base') baseNet -= BigInt(item.amount);
+                data.withdrawEvents.items.forEach((item: any) => {
+                    if (item.chain === 'ARB') arbNet -= BigInt(item.amount);
+                    if (item.chain === 'BASE') baseNet -= BigInt(item.amount);
                 });
 
                 // Prevent negative due to weird block indexing mismatches

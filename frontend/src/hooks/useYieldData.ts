@@ -51,16 +51,16 @@ export const useYieldData = () => {
         const fetchHistory = async () => {
             try {
                 const [arbRes, baseRes]: any[] = await Promise.all([
-                    ponderClient.request(GET_YIELD_HISTORY, { chain: 'Arbitrum', limit: 20 }),
-                    ponderClient.request(GET_YIELD_HISTORY, { chain: 'Base', limit: 20 }),
+                    ponderClient.request(GET_YIELD_HISTORY, { chain: 'ARB', limit: 20 }),
+                    ponderClient.request(GET_YIELD_HISTORY, { chain: 'BASE', limit: 20 }),
                 ]);
 
                 setHistory({
-                    arbitrum: arbRes.yield_snapshots.items.map((item: any) => ({
+                    arbitrum: arbRes.yieldSnapshots.items.map((item: any) => ({
                         apy: Number(item.supplyRate) / 1e16,
                         timestamp: Number(item.timestamp),
                     })),
-                    base: baseRes.yield_snapshots.items.map((item: any) => ({
+                    base: baseRes.yieldSnapshots.items.map((item: any) => ({
                         apy: Number(item.supplyRate) / 1e16,
                         timestamp: Number(item.timestamp),
                     })),

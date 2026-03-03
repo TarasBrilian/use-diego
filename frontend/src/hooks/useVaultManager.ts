@@ -29,7 +29,8 @@ export const useVaultManager = (chainKey: 'arbitrum' | 'base') => {
         const fetchVaultState = async () => {
             try {
                 const data: any = await ponderClient.request(GET_VAULT_STATE);
-                const state = data.vault_states.items.find((s: any) => s.chain.toLowerCase() === chainKey.toLowerCase());
+                const targetLabel = chainKey === 'arbitrum' ? 'ARB' : 'BASE';
+                const state = data.vaultStates.items.find((s: any) => s.chain === targetLabel);
                 if (state) {
                     setIndexedAssets(BigInt(state.totalAssets));
                 }

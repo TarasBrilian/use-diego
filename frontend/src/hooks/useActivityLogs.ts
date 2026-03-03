@@ -46,46 +46,48 @@ export function useActivityLogs(userAddress?: string) {
                     user: userAddress?.toLowerCase() || undefined,
                 });
 
+                const mapChain = (c: string) => (c === "BASE" ? "Base" : "Arbitrum");
+
                 const allLogs: ActivityLogItem[] = [
-                    ...data.deposit_events.items.map((item: any) => ({
+                    ...data.depositEvents.items.map((item: any) => ({
                         id: item.id,
                         time: formatTime(Number(item.timestamp)),
                         timestamp: Number(item.timestamp),
                         type: "deposit" as const,
-                        message: `New Deposit: ${formatUnits(BigInt(item.amount), 6)} USDC received on ${item.chain}`,
+                        message: `New Deposit: ${formatUnits(BigInt(item.amount), 6)} USDC received on ${mapChain(item.chain)}`,
                         tx: item.txHash,
                         status: "completed" as const,
-                        chain: item.chain,
+                        chain: mapChain(item.chain),
                     })),
-                    ...data.withdraw_events.items.map((item: any) => ({
+                    ...data.withdrawEvents.items.map((item: any) => ({
                         id: item.id,
                         time: formatTime(Number(item.timestamp)),
                         timestamp: Number(item.timestamp),
                         type: "deposit" as const,
-                        message: `Withdrawal: ${formatUnits(BigInt(item.amount), 6)} USDC from ${item.chain}`,
+                        message: `Withdrawal: ${formatUnits(BigInt(item.amount), 6)} USDC from ${mapChain(item.chain)}`,
                         tx: item.txHash,
                         status: "completed" as const,
-                        chain: item.chain,
+                        chain: mapChain(item.chain),
                     })),
-                    ...data.rebalance_triggereds.items.map((item: any) => ({
+                    ...data.rebalanceTriggereds.items.map((item: any) => ({
                         id: item.id,
                         time: formatTime(Number(item.timestamp)),
                         timestamp: Number(item.timestamp),
                         type: "rebalance" as const,
-                        message: `CCIP Rebalance: ${formatUnits(BigInt(item.amount), 18)} moved from ${item.chain} to ${item.targetChain}`,
+                        message: `CCIP Rebalance: ${formatUnits(BigInt(item.amount), 18)} moved from ${mapChain(item.chain)} to ${mapChain(item.targetChain)}`,
                         tx: item.txHash,
                         status: "completed" as const,
-                        chain: item.chain,
+                        chain: mapChain(item.chain),
                     })),
-                    ...data.yield_snapshots.items.map((item: any) => ({
+                    ...data.yieldSnapshots.items.map((item: any) => ({
                         id: item.id,
                         time: formatTime(Number(item.timestamp)),
                         timestamp: Number(item.timestamp),
                         type: "oracle" as const,
-                        message: `CRE Decision: ${item.chain} yield updated to ${(Number(item.supplyRate) / 1e16).toFixed(2)}%.`,
+                        message: `CRE Decision: ${mapChain(item.chain)} yield updated to ${(Number(item.supplyRate) / 1e16).toFixed(2)}%.`,
                         tx: item.txHash,
                         status: "info" as const,
-                        chain: item.chain,
+                        chain: mapChain(item.chain),
                     })),
                 ];
 

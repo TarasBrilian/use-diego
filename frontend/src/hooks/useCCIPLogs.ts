@@ -36,16 +36,16 @@ export function useCCIPLogs(pageSize: number = 4) {
 
                 console.log("CCIP Logs Raw Data:", data);
 
-                if (!data.rebalance_triggereds) {
-                    console.warn("No rebalance_triggereds field in response");
+                if (!data.rebalanceTriggereds) {
+                    console.warn("No rebalanceTriggereds field in response");
                     return;
                 }
 
-                const consolidated: CCIPLogEntry[] = data.rebalance_triggereds.items.map((item: any) => ({
+                const consolidated: CCIPLogEntry[] = data.rebalanceTriggereds.items.map((item: any) => ({
                     id: item.id,
                     timestamp: Number(item.timestamp),
-                    originChain: item.chain as "Arbitrum" | "Base",
-                    targetChain: item.targetChain, // Use the mapped chain name from indexer
+                    originChain: item.chain === "BASE" ? "Base" : "Arbitrum",
+                    targetChain: item.targetChain === "BASE" ? "Base" : "Arbitrum",
                     amount: BigInt(item.amount),
                     messageId: item.messageId as `0x${string}`,
                     txHash: item.txHash as `0x${string}`,
