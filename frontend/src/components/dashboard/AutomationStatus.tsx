@@ -2,15 +2,23 @@
 
 import { useCheckUpkeep } from '@/hooks/useCheckUpkeep';
 import { useVaultManager } from '@/hooks/useVaultManager';
+import { useCCIPLogs, type CCIPLogEntry } from '@/hooks/useCCIPLogs';
 import { formatCooldown } from '@/lib/format';
-import { Badge } from '@/components/ui/Badge';
 import { DataRow } from '@/components/ui/DataRow';
-import { Cpu, Zap, Timer } from 'lucide-react';
+import { Zap, Timer } from 'lucide-react';
 import { decodeAbiParameters } from 'viem';
 
 export const AutomationStatus = () => {
-    const { needsUpkeep, performData, isLoading } = useCheckUpkeep();
+    const { needsUpkeep, performData } = useCheckUpkeep();
     const { cooldown } = useVaultManager('arbitrum');
+    const {
+        logs,
+        isLoading: logsLoading,
+        page,
+        setPage,
+        hasNextPage,
+        hasPrevPage
+    } = useCCIPLogs(4);
 
     const decodePerformData = () => {
         if (!performData || performData === '0x') return null;
@@ -65,22 +73,53 @@ export const AutomationStatus = () => {
                 )}
             </div>
 
-            <div className="p-4 bg-bg-elevated rounded-md border border-border">
-                <div className="text-[10px] text-text-muted uppercase font-mono mb-2">Internal Logs</div>
-                <div className="font-mono text-[10px] space-y-1 text-text-secondary select-none">
+            <div className="p-4 bg-bg-elevated rounded-md border border-border relative">
+                <div className="flex justify-between items-center mb-2">
+                    <div className="text-[10px] text-text-muted uppercase font-mono">CCIP REBALANCE LOGS</div>
                     <div className="flex gap-2">
-                        <span className="text-accent-teal">[OK]</span>
-                        <span>Upkeep conditions verified.</span>
+                        <button
+                            onClick={() => setPage(page - 1)}
+                            disabled={!hasPrevPage}
+                            className="text-[10px] text-text-muted disabled:opacity-30 hover:text-primary transition-colors font-mono"
+                        >
+                            [PREV]
+                        </button>
+                        <button
+                            onClick={() => setPage(page + 1)}
+                            disabled={!hasNextPage}
+                            className="text-[10px] text-text-muted disabled:opacity-30 hover:text-primary transition-colors font-mono"
+                        >
+                            [NEXT]
+                        </button>
                     </div>
-                    <div className="flex gap-2">
-                        <span className="text-text-muted">[..]</span>
-                        <span>Scanning for yield differentials &gt; 2.0%</span>
-                    </div>
-                    {needsUpkeep && (
-                        <div className="flex gap-2">
-                            <span className="text-accent-orange">[!!]</span>
-                            <span className="text-primary italic">Rebalance signal detected. PerformData generated.</span>
-                        </div>
+                </div>
+
+                <div className="font-mono text-[10px] space-y-1.5 text-text-secondary">
+                    {logsLoading && page === 0 ? (
+                        <div className="animate-pulse">Fetching logs...</div>
+                    ) : logs.length === 0 ? (
+                        <div className="text-text-muted italic">No rebalance events detected.</div>
+                    ) : (
+                        logs.map((log) => (
+                            <div key={log.id} className="flex flex-col gap-0.5 border-b border-border/50 pb-1.5 last:border-0 last:pb-0">
+                                <div className="flex justify-between items-start">
+                                    <span className="text-accent-teal">[{new Date(log.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
+                                    <span className="text-text-muted">{new Date(log.timestamp * 1000).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-x-1 items-center">
+                                    <span className="text-primary">{log.originChain} → {log.targetChain}</span>
+                                    <span className="text-text-muted">|</span>
+                                    <a
+                                        href={`https://ccip.chain.link/msg/${log.messageId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-accent-blue hover:underline decoration-accent-blue/30"
+                                    >
+                                        {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)}
+                                    </a>
+                                </div>
+                            </div>
+                        ))
                     )}
                 </div>
             </div>

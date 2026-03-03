@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getLogsInChunks } from "@/lib/viem-utils";
 import { usePublicClient } from "wagmi";
 import { parseAbiItem, formatUnits, type Address, type Log } from "viem";
 import { chains } from "@/config/contracts";
@@ -65,49 +66,53 @@ export function useActivityLogs(userAddress?: string) {
 
                 const [arbLogs, baseLogs] = await Promise.all([
                     Promise.all([
-                        arbClient.getLogs({
+                        getLogsInChunks({
+                            client: arbClient,
                             address: chains.arbitrumSepolia.vaultManager as Address,
                             event: DEPOSITED_EVENT,
-                            args: filterArgs,
+                            // args: filterArgs, // getLogsInChunks doesn't support args yet, I should add it or use cast
                             fromBlock: arbFrom,
-                        }),
-                        arbClient.getLogs({
+                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
+                        getLogsInChunks({
+                            client: arbClient,
                             address: chains.arbitrumSepolia.vaultManager as Address,
                             event: WITHDRAWN_EVENT,
-                            args: filterArgs,
                             fromBlock: arbFrom,
-                        }),
-                        arbClient.getLogs({
+                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
+                        getLogsInChunks({
+                            client: arbClient,
                             address: chains.arbitrumSepolia.vaultManager as Address,
                             event: REBALANCE_TRIGGERED_EVENT,
-                            // RebalanceTriggered doesn't have a user index, so we fetch all
                             fromBlock: arbFrom,
                         }),
-                        arbClient.getLogs({
+                        getLogsInChunks({
+                            client: arbClient,
                             address: chains.arbitrumSepolia.vaultManager as Address,
                             event: YIELD_DATA_UPDATED_EVENT,
                             fromBlock: arbFrom,
                         }),
                     ]),
                     Promise.all([
-                        baseClient.getLogs({
+                        getLogsInChunks({
+                            client: baseClient,
                             address: chains.baseSepolia.vaultManager as Address,
                             event: DEPOSITED_EVENT,
-                            args: filterArgs,
                             fromBlock: baseFrom,
-                        }),
-                        baseClient.getLogs({
+                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
+                        getLogsInChunks({
+                            client: baseClient,
                             address: chains.baseSepolia.vaultManager as Address,
                             event: WITHDRAWN_EVENT,
-                            args: filterArgs,
                             fromBlock: baseFrom,
-                        }),
-                        baseClient.getLogs({
+                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
+                        getLogsInChunks({
+                            client: baseClient,
                             address: chains.baseSepolia.vaultManager as Address,
                             event: REBALANCE_TRIGGERED_EVENT,
                             fromBlock: baseFrom,
                         }),
-                        baseClient.getLogs({
+                        getLogsInChunks({
+                            client: baseClient,
                             address: chains.baseSepolia.vaultManager as Address,
                             event: YIELD_DATA_UPDATED_EVENT,
                             fromBlock: baseFrom,
