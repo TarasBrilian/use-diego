@@ -1,23 +1,15 @@
 "use client";
 
-import { usePublicClient, useAccount } from 'wagmi';
-import { chains } from '@/config/contracts';
-import { formatUnits, parseAbiItem } from 'viem';
+import { useAccount } from 'wagmi';
+import { formatUnits } from 'viem';
 import { ExternalLink, Hash, ArrowDownToLine, ArrowUpFromLine, Activity } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { arbitrumSepolia, baseSepolia } from 'viem/chains';
-
-const DEPOSITED_EVENT = parseAbiItem(
-    'event Deposited(address indexed user, uint256 amount, uint256 sharesIssued)'
-);
-
-const WITHDRAWN_EVENT = parseAbiItem(
-    'event Withdrawn(address indexed user, uint256 amount, uint256 sharesBurned)'
-);
+import { ponderClient } from '@/lib/ponder';
+import { GET_ACTIVITY_LOGS } from '@/lib/graphql/queries';
 
 const EXPLORER_TX_URL: Record<string, string> = {
-    'Arbitrum Sepolia': 'https://sepolia.arbiscan.io/tx',
-    'Base Sepolia': 'https://sepolia.basescan.org/tx',
+    'Arbitrum': 'https://sepolia.arbiscan.io/tx',
+    'Base': 'https://sepolia.basescan.org/tx',
 };
 
 interface TransactionEvent {
@@ -30,13 +22,13 @@ interface TransactionEvent {
 }
 
 function formatAmount(raw: bigint): string {
-    const val = parseFloat(formatUnits(raw, 18));
-    return `${val.toFixed(4)} USDC BnM`;
+    const val = parseFloat(formatUnits(raw, 6)); // USDC is 6 decimals
+    return `${val.toFixed(2)} USDC`;
 }
 
 function formatAge(timestamp: number): string {
-    const diff = Date.now() / 1000 - timestamp;
-    if (diff < 60) return `${Math.floor(diff)}s ago`;
+    const diff = Math.floor(Date.now() / 1000 - timestamp);
+    if (diff < 60) return `${diff}s ago`;
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
     return `${Math.floor(diff / 86400)}d ago`;
@@ -47,88 +39,49 @@ export const TransactionHistory = () => {
     const [events, setEvents] = useState<TransactionEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const arbClient = usePublicClient({ chainId: arbitrumSepolia.id });
-    const baseClient = usePublicClient({ chainId: baseSepolia.id });
-
     useEffect(() => {
         const fetchEvents = async () => {
-            if (!arbClient || !baseClient || !address) {
-                if (!address) setIsLoading(false);
+            if (!address) {
+                setIsLoading(false);
                 return;
             }
 
             setIsLoading(true);
             try {
-                const [arbBlock, baseBlock] = await Promise.all([
-                    arbClient.getBlockNumber(),
-                    baseClient.getBlockNumber(),
-                ]);
+                const data: any = await ponderClient.request(GET_ACTIVITY_LOGS, {
+                    limit: 20,
+                    user: address.toLowerCase(),
+                });
 
-                const LOOKBACK = BigInt(50_000);
-                const arbFrom = arbBlock > LOOKBACK ? arbBlock - LOOKBACK : BigInt(0);
-                const baseFrom = baseBlock > LOOKBACK ? baseBlock - LOOKBACK : BigInt(0);
+                const formatted: TransactionEvent[] = [
+                    ...data.deposit_events.items.map((item: any) => ({
+                        timestamp: Number(item.timestamp),
+                        amount: BigInt(item.amount),
+                        type: 'Deposit' as const,
+                        chain: item.chain,
+                        txHash: item.txHash,
+                        key: item.id,
+                    })),
+                    ...data.withdraw_events.items.map((item: any) => ({
+                        timestamp: Number(item.timestamp),
+                        amount: BigInt(item.amount),
+                        type: 'Withdraw' as const,
+                        chain: item.chain,
+                        txHash: item.txHash,
+                        key: item.id,
+                    })),
+                ].sort((a, b) => b.timestamp - a.timestamp);
 
-                const arbArgs = { user: address };
-                const baseArgs = { user: address };
-
-                const [arbDep, arbWith, baseDep, baseWith] = await Promise.all([
-                    arbClient.getLogs({
-                        address: chains.arbitrumSepolia.vaultManager as `0x${string}`,
-                        event: DEPOSITED_EVENT,
-                        args: arbArgs,
-                        fromBlock: arbFrom,
-                    }).catch(() => []),
-                    arbClient.getLogs({
-                        address: chains.arbitrumSepolia.vaultManager as `0x${string}`,
-                        event: WITHDRAWN_EVENT,
-                        args: arbArgs,
-                        fromBlock: arbFrom,
-                    }).catch(() => []),
-                    baseClient.getLogs({
-                        address: chains.baseSepolia.vaultManager as `0x${string}`,
-                        event: DEPOSITED_EVENT,
-                        args: baseArgs,
-                        fromBlock: baseFrom,
-                    }).catch(() => []),
-                    baseClient.getLogs({
-                        address: chains.baseSepolia.vaultManager as `0x${string}`,
-                        event: WITHDRAWN_EVENT,
-                        args: baseArgs,
-                        fromBlock: baseFrom,
-                    }).catch(() => []),
-                ]);
-
-                const taggedEvents = [
-                    ...arbDep.map(log => ({ log, type: 'Deposit' as const, chain: 'Arbitrum Sepolia', client: arbClient })),
-                    ...arbWith.map(log => ({ log, type: 'Withdraw' as const, chain: 'Arbitrum Sepolia', client: arbClient })),
-                    ...baseDep.map(log => ({ log, type: 'Deposit' as const, chain: 'Base Sepolia', client: baseClient })),
-                    ...baseWith.map(log => ({ log, type: 'Withdraw' as const, chain: 'Base Sepolia', client: baseClient })),
-                ];
-
-                const formatted = await Promise.all(
-                    taggedEvents.map(async ({ log, type, chain, client }) => {
-                        const block = await client.getBlock({ blockNumber: log.blockNumber });
-                        return {
-                            timestamp: Number(block.timestamp),
-                            amount: log.args.amount as bigint,
-                            type,
-                            chain,
-                            txHash: log.transactionHash as string,
-                            key: `${log.transactionHash}-${log.logIndex}`,
-                        } satisfies TransactionEvent;
-                    })
-                );
-
-                setEvents(formatted.sort((a, b) => b.timestamp - a.timestamp));
+                setEvents(formatted);
             } catch (e) {
-                console.error('Error fetching transaction events:', e);
+                console.error('Error fetching transaction events from indexer:', e);
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchEvents();
-    }, [arbClient, baseClient, address]);
+    }, [address]);
 
     return (
         <div className="bg-bg-surface border border-border rounded-lg overflow-hidden">

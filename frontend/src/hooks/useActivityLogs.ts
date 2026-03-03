@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { getLogsInChunks } from "@/lib/viem-utils";
-import { usePublicClient } from "wagmi";
-import { parseAbiItem, formatUnits, type Address, type Log } from "viem";
+import { formatUnits } from "viem";
 import { chains } from "@/config/contracts";
-import { arbitrumSepolia, baseSepolia } from "viem/chains";
+import { ponderClient } from "@/lib/ponder";
+import { GET_ACTIVITY_LOGS } from "@/lib/graphql/queries";
 
 export type ActivityLogType = "deposit" | "rebalance" | "oracle";
 
@@ -17,11 +16,6 @@ export interface ActivityLogItem {
     status: "completed" | "info";
     chain: string;
 }
-
-const DEPOSITED_EVENT = parseAbiItem("event Deposited(address indexed user, uint256 amount, uint256 sharesIssued)");
-const WITHDRAWN_EVENT = parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 sharesBurned)");
-const REBALANCE_TRIGGERED_EVENT = parseAbiItem("event RebalanceTriggered(uint64 indexed targetChain, uint256 amount, bytes32 messageId)");
-const YIELD_DATA_UPDATED_EVENT = parseAbiItem("event YieldDataUpdated(uint64 indexed chainSelector, uint256 supplyRate, uint256 timestamp)");
 
 function formatTime(timestamp: number) {
     const seconds = Math.floor(Date.now() / 1000 - timestamp);
@@ -43,145 +37,68 @@ export function useActivityLogs(userAddress?: string) {
     const [logs, setLogs] = useState<ActivityLogItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const arbClient = usePublicClient({ chainId: arbitrumSepolia.id });
-    const baseClient = usePublicClient({ chainId: baseSepolia.id });
-
     useEffect(() => {
         async function fetchLogs() {
-            if (!arbClient || !baseClient) return;
-
             setIsLoading(true);
             try {
-                // Determine block ranges (limiting to last 50k blocks for performance/RPC limits)
-                const [arbBlock, baseBlock] = await Promise.all([
-                    arbClient.getBlockNumber(),
-                    baseClient.getBlockNumber(),
-                ]);
+                const data: any = await ponderClient.request(GET_ACTIVITY_LOGS, {
+                    limit: 50,
+                    user: userAddress?.toLowerCase() || undefined,
+                });
 
-                const LOOKBACK = BigInt(50_000);
-                const arbFrom = arbBlock > LOOKBACK ? arbBlock - LOOKBACK : BigInt(0);
-                const baseFrom = baseBlock > LOOKBACK ? baseBlock - LOOKBACK : BigInt(0);
-
-                const filterArgs = userAddress ? { user: userAddress as Address } : undefined;
-
-                const [arbLogs, baseLogs] = await Promise.all([
-                    Promise.all([
-                        getLogsInChunks({
-                            client: arbClient,
-                            address: chains.arbitrumSepolia.vaultManager as Address,
-                            event: DEPOSITED_EVENT,
-                            // args: filterArgs, // getLogsInChunks doesn't support args yet, I should add it or use cast
-                            fromBlock: arbFrom,
-                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
-                        getLogsInChunks({
-                            client: arbClient,
-                            address: chains.arbitrumSepolia.vaultManager as Address,
-                            event: WITHDRAWN_EVENT,
-                            fromBlock: arbFrom,
-                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
-                        getLogsInChunks({
-                            client: arbClient,
-                            address: chains.arbitrumSepolia.vaultManager as Address,
-                            event: REBALANCE_TRIGGERED_EVENT,
-                            fromBlock: arbFrom,
-                        }),
-                        getLogsInChunks({
-                            client: arbClient,
-                            address: chains.arbitrumSepolia.vaultManager as Address,
-                            event: YIELD_DATA_UPDATED_EVENT,
-                            fromBlock: arbFrom,
-                        }),
-                    ]),
-                    Promise.all([
-                        getLogsInChunks({
-                            client: baseClient,
-                            address: chains.baseSepolia.vaultManager as Address,
-                            event: DEPOSITED_EVENT,
-                            fromBlock: baseFrom,
-                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
-                        getLogsInChunks({
-                            client: baseClient,
-                            address: chains.baseSepolia.vaultManager as Address,
-                            event: WITHDRAWN_EVENT,
-                            fromBlock: baseFrom,
-                        }).then(logs => filterArgs ? (logs as any).filter((l: any) => l.args.user === filterArgs.user) : logs),
-                        getLogsInChunks({
-                            client: baseClient,
-                            address: chains.baseSepolia.vaultManager as Address,
-                            event: REBALANCE_TRIGGERED_EVENT,
-                            fromBlock: baseFrom,
-                        }),
-                        getLogsInChunks({
-                            client: baseClient,
-                            address: chains.baseSepolia.vaultManager as Address,
-                            event: YIELD_DATA_UPDATED_EVENT,
-                            fromBlock: baseFrom,
-                        }),
-                    ]),
-                ]);
-
-                const allEvents = [
-                    ...arbLogs.flat().map(log => ({ ...log, chain: "Arbitrum" })),
-                    ...baseLogs.flat().map(log => ({ ...log, chain: "Base" })),
+                const allLogs: ActivityLogItem[] = [
+                    ...data.deposit_events.items.map((item: any) => ({
+                        id: item.id,
+                        time: formatTime(Number(item.timestamp)),
+                        timestamp: Number(item.timestamp),
+                        type: "deposit" as const,
+                        message: `New Deposit: ${formatUnits(BigInt(item.amount), 6)} USDC received on ${item.chain}`,
+                        tx: item.txHash,
+                        status: "completed" as const,
+                        chain: item.chain,
+                    })),
+                    ...data.withdraw_events.items.map((item: any) => ({
+                        id: item.id,
+                        time: formatTime(Number(item.timestamp)),
+                        timestamp: Number(item.timestamp),
+                        type: "deposit" as const,
+                        message: `Withdrawal: ${formatUnits(BigInt(item.amount), 6)} USDC from ${item.chain}`,
+                        tx: item.txHash,
+                        status: "completed" as const,
+                        chain: item.chain,
+                    })),
+                    ...data.rebalance_triggereds.items.map((item: any) => ({
+                        id: item.id,
+                        time: formatTime(Number(item.timestamp)),
+                        timestamp: Number(item.timestamp),
+                        type: "rebalance" as const,
+                        message: `CCIP Rebalance: ${formatUnits(BigInt(item.amount), 18)} moved from ${item.chain} to ${item.targetChain}`,
+                        tx: item.txHash,
+                        status: "completed" as const,
+                        chain: item.chain,
+                    })),
+                    ...data.yield_snapshots.items.map((item: any) => ({
+                        id: item.id,
+                        time: formatTime(Number(item.timestamp)),
+                        timestamp: Number(item.timestamp),
+                        type: "oracle" as const,
+                        message: `CRE Decision: ${item.chain} yield updated to ${(Number(item.supplyRate) / 1e16).toFixed(2)}%.`,
+                        tx: item.txHash,
+                        status: "info" as const,
+                        chain: item.chain,
+                    })),
                 ];
 
-                // Sort by block number DESC before fetching block timestamps to minimize requests if needed
-                // But we need timestamps for the UI sorting anyway
-                const logsWithTimestamps = await Promise.all(
-                    allEvents.map(async (event) => {
-                        const block = await (event.chain === "Arbitrum" ? arbClient : baseClient).getBlock({
-                            blockNumber: event.blockNumber,
-                        });
-                        const timestamp = Number(block.timestamp);
-
-                        let type: ActivityLogType = "deposit";
-                        let message = "";
-                        let status: "completed" | "info" = "completed";
-
-                        if (event.eventName === "Deposited") {
-                            type = "deposit";
-                            const amount = formatUnits((event.args as any).amount, 6);
-                            message = `New Deposit: ${amount} USDC received on ${event.chain}`;
-                        } else if (event.eventName === "Withdrawn") {
-                            type = "deposit"; // Using same type for simplicity in UI
-                            const amount = formatUnits((event.args as any).amount, 6);
-                            message = `Withdrawal: ${amount} USDC from ${event.chain}`;
-                        } else if (event.eventName === "RebalanceTriggered") {
-                            type = "rebalance";
-                            const amount = formatUnits((event.args as any).amount, 18); // BnM is 18 decimals
-                            const targetChain = getChainName((event.args as any).targetChain.toString());
-                            message = `CCIP Rebalance: ${amount} moved from ${event.chain} to ${targetChain}`;
-                        } else if (event.eventName === "YieldDataUpdated") {
-                            type = "oracle";
-                            const supplyRate = (Number((event.args as any).supplyRate) / 1e16).toFixed(2);
-                            const targetChain = getChainName((event.args as any).chainSelector.toString());
-                            message = `CRE Decision: ${targetChain} yield updated to ${supplyRate}%.`;
-                            status = "info";
-                        }
-
-                        return {
-                            id: `${event.transactionHash}-${event.logIndex}`,
-                            time: formatTime(timestamp),
-                            timestamp,
-                            type,
-                            message,
-                            tx: event.transactionHash,
-                            status,
-                            chain: event.chain,
-                        } as ActivityLogItem;
-                    })
-                );
-
-                setLogs(logsWithTimestamps.sort((a, b) => b.timestamp - a.timestamp));
+                setLogs(allLogs.sort((a, b) => b.timestamp - a.timestamp));
             } catch (error) {
-                console.error("Error fetching logs:", error);
+                console.error("Error fetching logs from indexer:", error);
             } finally {
                 setIsLoading(false);
             }
         }
 
         fetchLogs();
-    }, [arbClient, baseClient, userAddress]);
+    }, [userAddress]);
 
     return { logs, isLoading };
 }

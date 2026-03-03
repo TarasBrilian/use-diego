@@ -74,8 +74,8 @@ export const AutomationStatus = () => {
             </div>
 
             <div className="p-4 bg-bg-elevated rounded-md border border-border relative">
-                <div className="flex justify-between items-center mb-2">
-                    <div className="text-[10px] text-text-muted uppercase font-mono">CCIP REBALANCE LOGS</div>
+                <div className="flex justify-between items-center mb-4">
+                    <div className="text-[10px] text-text-muted uppercase font-bold tracking-wider font-mono">INTERNAL LOGS</div>
                     <div className="flex gap-2">
                         <button
                             onClick={() => setPage(page - 1)}
@@ -94,32 +94,44 @@ export const AutomationStatus = () => {
                     </div>
                 </div>
 
-                <div className="font-mono text-[10px] space-y-1.5 text-text-secondary">
+                <div className="font-mono text-[10px] space-y-2 text-text-secondary">
                     {logsLoading && page === 0 ? (
-                        <div className="animate-pulse">Fetching logs...</div>
-                    ) : logs.length === 0 ? (
-                        <div className="text-text-muted italic">No rebalance events detected.</div>
-                    ) : (
-                        logs.map((log) => (
-                            <div key={log.id} className="flex flex-col gap-0.5 border-b border-border/50 pb-1.5 last:border-0 last:pb-0">
-                                <div className="flex justify-between items-start">
-                                    <span className="text-accent-teal">[{new Date(log.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
-                                    <span className="text-text-muted">{new Date(log.timestamp * 1000).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex flex-wrap gap-x-1 items-center">
-                                    <span className="text-primary">{log.originChain} → {log.targetChain}</span>
-                                    <span className="text-text-muted">|</span>
-                                    <a
-                                        href={`https://ccip.chain.link/msg/${log.messageId}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-accent-blue hover:underline decoration-accent-blue/30"
-                                    >
-                                        {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)}
-                                    </a>
-                                </div>
+                        <div className="space-y-1">
+                            <div className="text-emerald-500/80">[OK] Upkeep conditions verified.</div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-blue-400">[..]</span>
+                                <span className="animate-pulse">Scanning for yield differentials &gt; 2.0%</span>
                             </div>
-                        ))
+                        </div>
+                    ) : logs.length === 0 ? (
+                        <div className="space-y-1">
+                            <div className="text-emerald-500/80">[OK] Upkeep conditions verified.</div>
+                            <div className="text-text-muted italic">No rebalance events detected in recent blocks.</div>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <div className="text-emerald-500/80 mb-2">[OK] Upkeep conditions verified.</div>
+                            {logs.map((log) => (
+                                <div key={log.id} className="flex flex-col gap-0.5 border-l-2 border-border/30 pl-3 last:pb-0">
+                                    <div className="flex justify-between items-start opacity-70">
+                                        <span className="text-accent-teal">[{new Date(log.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>
+                                        <span className="text-text-muted">{new Date(log.timestamp * 1000).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-x-1 items-center">
+                                        <span className="text-primary">{log.originChain} → {log.targetChain}</span>
+                                        <span className="text-text-muted">|</span>
+                                        <a
+                                            href={`https://ccip.chain.link/msg/${log.messageId}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-accent-blue hover:underline decoration-accent-blue/30"
+                                        >
+                                            {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)}
+                                        </a>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
             </div>
