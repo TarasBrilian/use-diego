@@ -7,12 +7,12 @@ export default createConfig({
     baseSepolia: {
       id: 84532,
       rpc: process.env.PONDER_RPC_URL_84532!,
-      ethGetLogsBlockRange: 200
+      ethGetLogsBlockRange: 10
     },
     arbitrumSepolia: {
       id: 421614,
       rpc: process.env.PONDER_RPC_URL_421614!,
-      ethGetLogsBlockRange: 200
+      ethGetLogsBlockRange: 10
     },
   },
   contracts: {
