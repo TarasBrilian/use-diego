@@ -8,8 +8,8 @@ import { ponderClient } from '@/lib/ponder';
 import { GET_ACTIVITY_LOGS } from '@/lib/graphql/queries';
 
 const EXPLORER_TX_URL: Record<string, string> = {
-    'Arbitrum': 'https://sepolia.arbiscan.io/tx',
-    'Base': 'https://sepolia.basescan.org/tx',
+    'ARB': 'https://sepolia.arbiscan.io/tx',
+    'BASE': 'https://sepolia.basescan.org/tx',
 };
 
 interface TransactionEvent {
